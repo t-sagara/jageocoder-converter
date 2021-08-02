@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data directories
+/data/
+/db*/
+/gaiku/
+/oaza/
+/output/
+/saigai.gsi.go.jp/
