@@ -1,7 +1,6 @@
 import csv
 import glob
 import io
-import json
 from logging import getLogger
 import os
 import re
@@ -9,7 +8,6 @@ import tempfile
 from typing import Union, NoReturn, Optional, List
 
 from jageocoder import AddressTree
-from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
 from jageocoder.itaiji import converter as itaiji_converter
 
@@ -185,7 +183,7 @@ class DataManager(object):
         self.add_elements(names, x, y, note)
 
     def add_elements(self, names: List[str], x: float, y: float,
-                     note: Union[str, None])->NoReturn:
+                     note: Union[str, None]) -> NoReturn:
         """
         Format the address elements into a form that can be registered
         in the database. The parent_id is also calculated and assigned.
@@ -233,7 +231,6 @@ class DataManager(object):
                 'parent_id': parent_id,
             }
 
-            # print(json.dumps(values, ensure_ascii=False))
             self.buffer.append(values)
             self.nodes[key] = new_id
             self.prev_names = names

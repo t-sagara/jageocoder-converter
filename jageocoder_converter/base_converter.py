@@ -1,20 +1,12 @@
-from jageocoder import AddressTree
 from jageocoder.address import AddressLevel
 from jageocoder.itaiji import converter as itaiji_converter
-import jaconv
-import zipfile
 from collections import OrderedDict
-import copy
-import csv
-import glob
-import io
 import json
 import logging
 import os
 import re
-import readline
 import sys
-from typing import TextIO, Union, Optional, NoReturn, Dict, List, Tuple
+from typing import TextIO, Union, Optional, NoReturn, List, Tuple
 import urllib.request
 
 
@@ -196,7 +188,7 @@ class BaseConverter(object):
         """
         Outputs a single line of information.
         If the instance variable priority is set,
-        add '!xx' next to the address element names. 
+        add '!xx' next to the address element names.
 
         Parameters
         ----------
@@ -222,8 +214,7 @@ class BaseConverter(object):
 
         print(line, file=self.fp)
 
-    @staticmethod
-    def _arabicToNumber(arabic: str) -> int:
+    def _arabicToNumber(self, arabic: str) -> int:
         """
         Converts Arabic numerals to int values.
 
@@ -238,7 +229,7 @@ class BaseConverter(object):
             Evaluated integer value, decimals are not recognized
         """
         total = 0
-        for char in string:
+        for char in arabic:
             i = "０１２３４５６７８９0123456789".index(char)
             if i is None:
                 break
@@ -249,8 +240,7 @@ class BaseConverter(object):
 
         return total
 
-    @staticmethod
-    def _numberToKansuji(num: int) -> str:
+    def _numberToKansuji(self, num: int) -> str:
         """
         Converts integer value to Chinese numeral.
 
@@ -363,7 +353,6 @@ class BaseConverter(object):
         >>> base.guessAza('大通西十三丁目')
         [[5, '大通'], [6, '西十三丁目']]
         """
-        places = []
         name = re.sub(r'[　\s+]', '', name)
 
         if name in self.cache:

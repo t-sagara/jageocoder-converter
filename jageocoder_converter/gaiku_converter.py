@@ -43,10 +43,11 @@ class GaikuConverter(BaseConverter):
             # Skip line with blank Aza-names and non-representative points
             return
 
-        flag = False
+        """
         if args[12] == '3' or args[13] == '3':
             # Add registered data with flag
             flag = True
+        """
 
         pref = args[0]
         city = args[1]
@@ -77,7 +78,6 @@ class GaikuConverter(BaseConverter):
 
         uppers = self.jiscodes[jcode]
         names = []
-        level = AddressLevel.UNDEFINED
 
         # The following addresses may be a branch numbers
         # 17206 石川県/加賀市/永井町五十六/12 => 石川県/加賀市/永井町/56番地/12
@@ -130,12 +130,13 @@ class GaikuConverter(BaseConverter):
                     except UnicodeDecodeError:
                         raise RuntimeError((
                             "変換できない文字が見つかりました。"
-                            "処理中のファイルは {}, 直前の行は次の通りです。\n{}")
-                            .format(pre_args))
+                            "処理中のファイルは {}, "
+                            "直前の行は次の通りです。\n{}").format(
+                                filename, pre_args))
 
     def convert(self):
         """
-        Read records from 'gaiku/xx000.zip' files, format them, 
+        Read records from 'gaiku/xx000.zip' files, format them,
         then output to 'output/xx_gaiku.txt'.
         """
         for pref_code in self.targets:

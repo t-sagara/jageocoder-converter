@@ -45,7 +45,6 @@ class JushoConverter(BaseConverter):
         jcode, aza, gaiku, kiso, code, dummy, lon, lat, scale = args
         uppers = self.jiscodes[jcode]
         names = []
-        level = AddressLevel.UNDEFINED
 
         # 大字，字レベル
         names = [] + self.guessAza(aza, jcode)

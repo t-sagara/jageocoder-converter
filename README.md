@@ -3,6 +3,9 @@
 This package is a CUI application for creating an address dictionary for use with the address geocoder [jageocoder](https://github.com/t-sagara/jageocoder).
 It can be used when you want to create a dictionary that includes only some prefectures.
 
+For more detailed information, please refer to
+[the Japanese document](doc/index.rst).
+
 ### Prerequisites
 
 Requires Python 3.6.x or later.
@@ -35,7 +38,7 @@ needed to create the dictionary. Before downloading, you will be prompted
 with a link to the terms of use. Be sure to read them,
 and enter a capital 'Y'.
 
-*Other examples*
+**More examples**
 
 To create a dictionary, including only 東京都,
 without records from 住居表示住所, run the following command.
@@ -52,10 +55,11 @@ python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
 
 ## Authors
 
-* **Takeshi SAGARA** - [Info-proto Co.,Ltd.](https://www.info-proto.com/)
+* Takeshi SAGARA - [Info-proto Co.,Ltd.](https://www.info-proto.com/)
 
 ## License
 
 This project is licensed under [the MIT License](https://opensource.org/licenses/mit-license.php).
 
-This is not the scope of the dictionary data license. Please follow the license of the respective dictionary data.
+This is not the scope of the dictionary data license.
+Please follow the terms of use of the respective dictionary data.

@@ -6,8 +6,6 @@ import os
 from typing import Union, NoReturn, Optional, List
 import zipfile
 
-from jageocoder.address import AddressLevel
-
 from jageocoder_converter.base_converter import BaseConverter
 
 logger = getLogger(__name__)
