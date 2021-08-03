@@ -1,0 +1,61 @@
+# jageocoder-converter
+
+This package is a CUI application for creating an address dictionary for use with the address geocoder [jageocoder](https://github.com/t-sagara/jageocoder).
+It can be used when you want to create a dictionary that includes only some prefectures.
+
+### Prerequisites
+
+Requires Python 3.6.x or later.
+
+### Installing
+
+- Install the package using `pip install jageocoder-converter`
+
+## Uninstalling
+
+Remove the directory containing the database.
+Then, do `pip uninstall jageocoder-converter`.
+
+## Run
+
+Show help with the following command.
+
+```sh
+python -m jageocoder_converter -h
+``` 
+
+To create a dictionary, specify the `convert` command.
+
+```sh
+python -m jageocoder_converter convert
+```
+
+During the process, it downloads the location reference information
+needed to create the dictionary. Before downloading, you will be prompted
+with a link to the terms of use. Be sure to read them,
+and enter a capital 'Y'.
+
+*Other examples*
+
+To create a dictionary, including only 東京都,
+without records from 住居表示住所, run the following command.
+
+```sh
+python -m jageocoder_converter convert --no-jusho 13
+```
+
+You may create a dictionary in the specified directory.
+
+```sh
+python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
+```
+
+## Authors
+
+* **Takeshi SAGARA** - [Info-proto Co.,Ltd.](https://www.info-proto.com/)
+
+## License
+
+This project is licensed under [the MIT License](https://opensource.org/licenses/mit-license.php).
+
+This is not the scope of the dictionary data license. Please follow the license of the respective dictionary data.

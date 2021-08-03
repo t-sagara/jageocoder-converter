@@ -3,7 +3,9 @@ import glob
 import io
 from logging import getLogger
 import os
+import re
 from typing import Union, NoReturn, Optional, List
+import urllib.request
 import zipfile
 
 import jaconv
@@ -31,6 +33,7 @@ class JushoConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
+        self.prepare_jiscode_table()
 
     def process_line(self, args):
         """
@@ -94,13 +97,59 @@ class JushoConverter(BaseConverter):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
 
-            with open(output_filepath, 'w', encoding='utf-8') as fout:
+            zipfiles = None
+            while zipfiles is None:
+                zipfiles = glob.glob(
+                    os.path.join(self.input_dir,
+                                 '{}???.zip'.format(pref_code)))
+                if len(zipfiles) == 0:
+                    self.download_files()
 
-                basename = "{}000.zip".format(pref_code)
+            with open(output_filepath, 'w', encoding='utf-8') as fout:
                 self.set_fp(fout)
 
-                for jusho_filepath in sorted(glob.glob(
-                        os.path.join(self.input_dir,
-                                     '{}*.zip'.format(pref_code)))):
+                for jusho_filepath in zipfiles:
                     logger.debug("Reading from {}".format(jusho_filepath))
                     self.add_from_zipfile(jusho_filepath)
+
+    def download_files(self):
+        """
+        Download zipped data files from
+        '電子国土基本図（地名情報）「住居表示住所」の閲覧・ダウンロード'
+        https://saigai.gsi.go.jp/jusho/download/
+        """
+        urlbase = 'https://saigai.gsi.go.jp/jusho/download/pref/'
+        urls = []
+        for pref_code in self.targets:
+            url = "{0}/{1}.html".format(urlbase, pref_code)
+            urls += self._extract_zip_urls(url)
+
+        self.download(
+            urls=urls,
+            dirname=self.input_dir,
+            notes=(
+                "「電子国土基本図（地名情報）「住居表示住所」を"
+                "ダウンロードします。\n注意事項や利用条件については"
+                "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
+                "を必ず確認してください。\n"
+            )
+        )
+
+    def _extract_zip_urls(self, url: str) -> List[str]:
+        """
+        Extract url list of zipped files from the index html
+        such as https://saigai.gsi.go.jp/jusho/download/pref/01.html
+        """
+        with urllib.request.urlopen(url) as f:
+            content = f.read().decode('utf-8')
+
+        urls = []
+        # pattern: <li><a href="../data/01101.zip">札幌市中央区</a></li>
+        for m in re.finditer(r'<li><a href="([^"]+)">([^<]+)</a></li>',
+                             content):
+            zip_url = os.path.join(
+                os.path.dirname(url), m.group(1))
+            logger.debug("{}: {}".format(m.group(2), zip_url))
+            urls.append(zip_url)
+
+        return urls

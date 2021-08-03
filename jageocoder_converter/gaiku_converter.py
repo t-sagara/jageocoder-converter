@@ -1,4 +1,5 @@
 import csv
+import glob
 import io
 from logging import getLogger
 import os
@@ -32,6 +33,7 @@ class GaikuConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
+        self.prepare_jiscode_table()
 
     def process_line(self, args, mode='latlon'):
         """
@@ -143,12 +145,41 @@ class GaikuConverter(BaseConverter):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
 
+            input_filepath = None
+            while input_filepath is None:
+                zipfiles = glob.glob(
+                    os.path.join(self.input_dir,
+                                 '{}000*.zip'.format(pref_code)))
+                if len(zipfiles) == 0:
+                    self.download_files()
+                else:
+                    input_filepath = zipfiles[0]
+
             with open(output_filepath, 'w', encoding='utf-8') as fout:
-
-                basename = "{}000.zip".format(pref_code)
                 self.set_fp(fout)
+                logger.debug("Reading from {}".format(input_filepath))
+                self.add_from_zipfile(input_filepath)
 
-                gaiku_filepath = os.path.join(self.input_dir, basename)
-                if os.path.exists(gaiku_filepath):
-                    logger.debug("Reading from {}".format(gaiku_filepath))
-                    self.add_from_zipfile(gaiku_filepath)
+    def download_files(self):
+        """
+        Download zipped data files from
+        '位置参照情報ダウンロードサービス'
+        https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
+        """
+        urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
+        version = '19.0a'  # PY2020, 令和2年度
+        urls = []
+        for pref_code in self.targets:
+            url = "{0}/{1}/{2}000-{1}.zip".format(
+                urlbase, version, pref_code)
+            urls.append(url)
+
+        self.download(
+            urls=urls,
+            dirname=self.input_dir,
+            notes=(
+                "「街区レベル位置参照情報」をダウンロードします。\n"
+                "https://nlftp.mlit.go.jp/ksj/other/agreement.html の"
+                "利用規約を必ず確認してください。\n"
+            )
+        )

@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 from typing import Union, NoReturn, Optional, List
 
@@ -27,10 +28,15 @@ class CityConverter(BaseConverter):
 
     def read_pref_file(self):
         """
-        Read 'geonlp/japan_pref.csv'
+        Read 'japan_pref.csv'
         """
         input_filepath = os.path.join(
             self.input_dir, 'japan_pref.csv')
+        if not os.path.exists(input_filepath):
+            self.download(urls=['file://' + os.path.join(
+                os.path.dirname(__file__), 'data/japan_pref.csv')],
+                dirname=self.input_dir)
+
         with open(input_filepath, 'r', encoding='cp932', newline='') as f:
             reader = csv.reader(f)
             for rows in reader:
@@ -38,34 +44,88 @@ class CityConverter(BaseConverter):
                     continue
 
                 jiscode, name, lon, lat = rows[1], rows[6], rows[11], rows[12]
-                self.records[jiscode] = [
-                    [[[AddressLevel.PREF, name]], lon, lat]]
+                self.records[jiscode] = [[
+                    [[AddressLevel.PREF, name]], lon, lat,
+                    'jisx0401:'+jiscode]]
 
                 # Register names that omit '都', '府' and '県' also
                 name = rows[2]
                 if name != '北海':
-                    self.records[jiscode].append(
-                        [[[AddressLevel.PREF, name]], lon, lat])
+                    self.records[jiscode].append([
+                        [[AddressLevel.PREF, name]],
+                        lon, lat, 'jisx0401:'+jiscode])
 
     def read_city_file(self):
         """
-        Read 'geonlp/japan_city.csv'
+        Read 'geoshape-city.csv'
         """
         input_filepath = os.path.join(
-            self.input_dir, 'japan_city.csv')
-        with open(input_filepath, 'r', encoding='cp932', newline='') as f:
+            self.input_dir, 'geoshape-city.csv')
+        if not os.path.exists(input_filepath):
+            self.download(
+                urls=['http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'],
+                dirname=self.input_dir,
+                notes=(
+                    "「歴史的行政区域データセットβ版地名辞書」をダウンロードします。\n"
+                    "利用条件等は https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/ "
+                    "を確認してください。\n"
+                )
+            )
+
+        jiscodes = {}
+        with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
+            head = {}
             for rows in reader:
-                if rows[0] == 'geonlp_id':
+                if rows[0] in ('geonlp_id', 'entry_id'):
+                    for i, row in enumerate(rows):
+                        head[row] = i
+
                     continue
 
-                jiscode = rows[1]
-                names = self.jiscodes[jiscode]
-                lon, lat = rows[11], rows[12]
+                for pref in rows[head['prefname']].split('/'):
+                    for county in rows[head['countyname']].split('/'):
 
-                if lon and lat:
-                    self.records[jiscode[0:2]].append(
-                        [names, lon, lat])
+                        body = rows[head['body']] + rows[head['suffix']]
+                        suffix = rows[head['suffix']]
+                        lon = rows[head['longitude']]
+                        lat = rows[head['latitude']]
+                        jiscode = rows[head['code']]
+
+                        if len(jiscode) < 5:  # 境界未確定地域
+                            continue
+
+                        jiscode = jiscode[0:5]
+
+                        level = AddressLevel.CITY
+                        if suffix == '区' and pref != '東京都':
+                            level = AddressLevel.WORD
+
+                        names = [[AddressLevel.PREF, pref]]
+                        if body != county and county != '':
+                            names.append([AddressLevel.COUNTY, county])
+
+                        names.append([level, body])
+
+                        if lon and lat:
+                            self.records[jiscode[0:2]].append(
+                                [names, lon, lat, 'jisx0402:' + jiscode])
+
+                        if jiscode not in jiscodes:
+                            jiscodes[jiscode] = [names, rows[head['valid_to']]]
+                            continue
+
+                        if jiscodes[jiscode][1] == '':
+                            continue
+
+                        if rows[head['valid_to']] == '' or \
+                                rows[head['valid_to']] > jiscodes[jiscode][1]:
+                            jiscodes[jiscode] = [names, rows[head['valid_to']]]
+
+        with open(self.get_jiscode_json_path(), 'w', encoding='utf-8') as f:
+            for jiscode, args in jiscodes.items():
+                print(json.dumps({jiscode: args[0]}, ensure_ascii=False),
+                      file=f)
 
     def write_city_files(self):
         """

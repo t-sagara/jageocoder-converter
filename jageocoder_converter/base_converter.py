@@ -1,3 +1,8 @@
+from jageocoder import AddressTree
+from jageocoder.address import AddressLevel
+from jageocoder.itaiji import converter as itaiji_converter
+import jaconv
+import zipfile
 from collections import OrderedDict
 import copy
 import csv
@@ -6,15 +11,12 @@ import io
 import json
 import logging
 import os
-from typing import TextIO, Union, Optional, NoReturn, Dict, List, Tuple
 import re
+import readline
 import sys
-import zipfile
+from typing import TextIO, Union, Optional, NoReturn, Dict, List, Tuple
+import urllib.request
 
-import jaconv
-
-from jageocoder.itaiji import converter as itaiji_converter
-from jageocoder import AddressLevel, AddressTree
 
 Address = Tuple[int, str]  # Address element level and element name
 
@@ -96,39 +98,64 @@ class BaseConverter(object):
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
 
-        with open(os.path.join(
-                os.path.dirname(__file__), 'jiscode.json'), 'r') as f:
-            self.jiscodes = json.load(f)
+    def get_jiscode_json_path(self):
+        """
+        Return the file path to the 'jiscode.json'
+        """
+        return os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                'data/jiscode.jsonl'))
+
+    def prepare_jiscode_table(self):
+        """
+        Create a city-level code table and a table for reverse lookup.
+        The original data, data/jiscode.json, is created by
+        'running city_converter.py:read_city_data()'.
+        """
+        self.jiscodes = {}
+        with open(self.get_jiscode_json_path(), 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                self.jiscodes.update(obj)
 
         # Create an index for reverse lookup of JIS codes from names.
         self.jiscode_from_name = {}
-        for jiscode, names in self.jiscodes.items():
+        for jiscode, elements in self.jiscodes.items():
+            names = [x[1] for x in elements]
             name = itaiji_converter.standardize(''.join(names))
             self.jiscode_from_name[name] = jiscode
             if len(names) == 3:
                 altname = itaiji_converter.standardize(names[0] + names[2])
                 self.jiscode_from_name[altname] = jiscode
 
-        # Add address levels to the JIS code table.
-        for jiscode, names in self.jiscodes.items():
-            new_names = []
-            for i, name in enumerate(names):
-                if i == 0:
-                    level = AddressLevel.PREF
-                elif i == 1:
-                    if name.endswith(('郡', '局', '島')):
-                        level = AddressLevel.COUNTY
-                    else:
-                        level = AddressLevel.CITY
-                else:
-                    if name.endswith('区'):
-                        level = AddressLevel.WORD
-                    else:
-                        level = AddressLevel.CITY
+    def download(self, urls: List[str],
+                 dirname: Union[str, bytes, os.PathLike],
+                 notes: Optional[str] = None) -> NoReturn:
+        """
+        Download files from web specified by urls and save them under dirname.
+        If notes is not None, display the message and a prompt for confirmation.
+        """
+        if not os.path.exists(dirname):
+            os.makedirs(dirname, mode=0o755)
 
-                new_names.append([level, name])
+        while notes is not None:
+            enter = input(notes + " (了承する場合は Y, 中止する場合は N を入力)")
+            if enter == 'Y':
+                break
+            elif enter == 'N':
+                print("中断します。")
+                exit(0)
 
-            self.jiscodes[jiscode] = new_names
+        for url in urls:
+            basename = os.path.basename(url)
+            filename = os.path.join(dirname, basename)
+            if os.path.exists(filename):
+                logger.info(
+                    "File '{}' exists. (skip downloading)".format(filename))
+                continue
+
+            local_filename, headers = urllib.request.urlretrieve(url, filename)
 
     def set_fp(self, fp: Union[TextIO, None]) -> NoReturn:
         """

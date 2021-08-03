@@ -2,14 +2,18 @@ import csv
 import glob
 import io
 import json
+from logging import getLogger
 import os
 import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
-from jageocoder import AddressLevel, AddressTree
+from jageocoder import AddressTree
+from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
 from jageocoder.itaiji import converter as itaiji_converter
+
+logger = getLogger(__name__)
 
 
 class DataManager(object):
@@ -55,6 +59,8 @@ class DataManager(object):
         self.targets = targets
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
+
+        os.makedirs(self.db_dir, mode=0o755, exist_ok=True)
 
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
@@ -112,6 +118,8 @@ class DataManager(object):
         prefcode: str
             The target prefecture code (JISX0401).
         """
+        logger.info('Sorting text data in {}'.format(
+            os.path.join(self.text_dir, prefcode + '_*.txt')))
         records = []
         for filename in glob.glob(
                 os.path.join(self.text_dir, prefcode + '_*.txt')):
@@ -233,6 +241,9 @@ class DataManager(object):
 
 
 if __name__ == '__main__':
-    manager = DataManager(db_dir='dbtest', text_dir='output', targets=None)
+    manager = DataManager(
+        db_dir='dbtest',
+        text_dir='output',
+        targets=['13'])
     manager.register()
     manager.create_index()
