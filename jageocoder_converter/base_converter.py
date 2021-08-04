@@ -55,6 +55,8 @@ class BaseConverter(object):
         smaller is higher priority
     targets: list[str]
         List of prefecture codes (JISX0401) to be processed
+    quiet: bool
+        Quiet mode, if set to True, skip all input.
     """
 
     seirei = [
@@ -68,7 +70,8 @@ class BaseConverter(object):
 
     def __init__(self, fp: Optional[TextIO] = None,
                  priority: Optional[int] = None,
-                 targets: Optional[List[str]] = None):
+                 targets: Optional[List[str]] = None,
+                 quiet: Optional[bool] = False):
         """
         Initialize the converter.
 
@@ -84,6 +87,7 @@ class BaseConverter(object):
         """
         self.set_fp(fp)
         self.priority = priority
+        self.quiet = quit
         self.cache = LRU()
 
         self.targets = targets
@@ -131,7 +135,7 @@ class BaseConverter(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname, mode=0o755)
 
-        while notes is not None:
+        while notes is not None and not self.quiet:
             enter = input(notes + " (了承する場合は Y, 中止する場合は N を入力)")
             if enter == 'Y':
                 break
@@ -146,6 +150,9 @@ class BaseConverter(object):
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
                 continue
+
+            logger.debug(
+                "Downloading '{}'->'{}'".format(url, filename))
 
             local_filename, headers = urllib.request.urlretrieve(url, filename)
 

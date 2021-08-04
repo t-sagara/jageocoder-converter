@@ -28,8 +28,9 @@ class JushoConverter(BaseConverter):
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
                  priority: Optional[int] = None,
-                 targets: Optional[List[str]] = None) -> NoReturn:
-        super().__init__(priority=priority, targets=targets)
+                 targets: Optional[List[str]] = None,
+                 quiet: Optional[bool] = False) -> NoReturn:
+        super().__init__(priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
@@ -73,6 +74,8 @@ class JushoConverter(BaseConverter):
                         errors='backslashreplace')
                     reader = csv.reader(ft)
                     pre_args = None
+                    logger.debug('Processing {} in {}...'.format(
+                        filename, zipfilepath))
                     try:
                         for args in reader:
                             self.process_line(args)
