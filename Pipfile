@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+autopep8 = "*"
+flake8 = "*"
+
+[packages]
+jageocoder-converter = {path = ".", editable = true}
+jageocoder = ">= 0.2.0"
+docopt = "*"
+
+[scripts]
+format = "autopep8 -ivr --ignore E226,E24,W50,W690,E501 ."
+lint = "flake8 --show-source --extend-ignore E501 ."
