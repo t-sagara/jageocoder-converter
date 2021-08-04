@@ -47,6 +47,11 @@ Python 3.6 以降が必要です。 ``pip`` でインストールします。 ::
 
   実行中のデバッグログを表示します。
 
+- ``-q``, ``--quiet``
+
+  表示や確認をスキップします。既に利用規約などを理解していて
+  処理の途中で確認のために停止するのを避けたい場合に指定します。
+
 - ``--no-oaza``
 
   指定すると国土交通省の大字・町丁目レベル位置参照情報を
@@ -94,6 +99,11 @@ Python 3.6 以降が必要です。 ``pip`` でインストールします。 ::
 ・全国の大字・町丁目レベル辞書を ``./oazadb/`` に作成 ::
 
   python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
+
+・全国の住居表示住所レベルまでの辞書をバックグラウンドで作成 ::
+
+  nohup python -m jageocoder_converter convert -d -q &
+  tail -f nohup.out
 
 
 拡張のためのヒント

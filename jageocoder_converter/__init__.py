@@ -29,6 +29,7 @@ def convert(
     db_dir: Optional[PathLike] = None,
     download_dir: Optional[PathLike] = None,
     textdata_dir: Optional[PathLike] = None,
+    quiet: bool = False,
 ) -> PathLike:
     basedir = os.getcwd()
     download_dir = download_dir if download_dir else os.path.join(
@@ -49,6 +50,7 @@ def convert(
         output_dir=output_dir,
         priority=1,
         targets=targets,
+        quiet=quiet,
     ).convert()
 
     if use_oaza:
@@ -57,6 +59,7 @@ def convert(
             output_dir=output_dir,
             priority=9,
             targets=targets,
+            quiet=quiet,
         ).convert()
 
     if use_gaiku:
@@ -65,6 +68,7 @@ def convert(
             output_dir=output_dir,
             priority=2,
             targets=targets,
+            quiet=quiet,
         ).convert()
 
     if use_jusho:
@@ -74,6 +78,7 @@ def convert(
             output_dir=output_dir,
             priority=3,
             targets=targets,
+            quiet=quiet,
         ).convert()
 
     # Create a jageocoder dictionary from the text data.

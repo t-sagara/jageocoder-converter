@@ -12,7 +12,7 @@ Requires Python 3.6.x or later.
 
 ### Installing
 
-- Install the package using `pip install jageocoder-converter`
+Install the package using `pip install jageocoder-converter`.
 
 ## Uninstalling
 
@@ -34,9 +34,9 @@ python -m jageocoder_converter convert
 ```
 
 During the process, it downloads the location reference information
-needed to create the dictionary. Before downloading, you will be prompted
-with a link to the terms of use. Be sure to read them,
-and enter a capital 'Y'.
+needed to create the dictionary from the web. Before downloading,
+you will be prompted with a link to the terms of use.
+Be sure to read them, and enter a capital 'Y'.
 
 **More examples**
 
@@ -51,6 +51,14 @@ You may create a dictionary in the specified directory.
 
 ```sh
 python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
+```
+
+If you already understand the terms of use, etc., and want to process it
+in the background, you can specify the quiet option. It may be useful
+to add a debug option to check the progress in the log file. ::
+
+```sh
+nohup python -m jageocoder_converter convert --quiet --debug &
 ```
 
 ## Authors
