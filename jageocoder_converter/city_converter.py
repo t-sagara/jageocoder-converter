@@ -34,9 +34,15 @@ class CityConverter(BaseConverter):
         input_filepath = os.path.join(
             self.input_dir, 'japan_pref.csv')
         if not os.path.exists(input_filepath):
-            self.download(urls=['file://' + os.path.join(
-                os.path.dirname(__file__), 'data/japan_pref.csv')],
-                dirname=self.input_dir)
+            # Copy file to the download directory
+            src = os.path.join(os.path.dirname(
+                __file__), 'data/japan_pref.csv')
+            dst = os.path.join(self.input_dir, 'japan_pref.csv')
+            with open(src, 'rb') as f:
+                content = f.read()
+
+            with open(dst, 'wb') as f:
+                f.write(content)
 
         with open(input_filepath, 'r', encoding='cp932', newline='') as f:
             reader = csv.reader(f)
@@ -135,7 +141,7 @@ class CityConverter(BaseConverter):
         for pref_code in self.targets:
             with open(os.path.join(
                     self.output_dir, '{}_city.txt'.format(pref_code)),
-                    'w') as fout:
+                    mode='w', encoding='utf-8') as fout:
 
                 self.set_fp(fout)
                 for record in self.records[pref_code]:

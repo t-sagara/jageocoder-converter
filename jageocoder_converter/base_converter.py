@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import sys
+import time
 from typing import TextIO, Union, Optional, NoReturn, List, Tuple
 import urllib.request
 
@@ -109,7 +110,8 @@ class BaseConverter(object):
         'running city_converter.py:read_city_data()'.
         """
         self.jiscodes = {}
-        with open(self.get_jiscode_json_path(), 'r') as f:
+        with open(self.get_jiscode_json_path(),
+                  mode='r', encoding='utf-8') as f:
             for line in f:
                 obj = json.loads(line)
                 self.jiscodes.update(obj)
@@ -154,6 +156,7 @@ class BaseConverter(object):
                 "Downloading '{}'->'{}'".format(url, filename))
 
             local_filename, headers = urllib.request.urlretrieve(url, filename)
+            time.sleep(5)
 
     def set_fp(self, fp: Union[TextIO, None]) -> NoReturn:
         """
