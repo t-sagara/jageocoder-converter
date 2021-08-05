@@ -18,10 +18,10 @@ logger = getLogger(__name__)
 
 class JushoConverter(BaseConverter):
     """
-    電子国土基本図（地名情報）「住居表示住所」から住居表示レベルの
-    整形済みテキストデータを生成するコンバータ。
+    A converter that generates formatted text data at the
+    street number level from '電子国土基本図（地名情報）「住居表示住所」'.
 
-    都道府県別に 'output/xx_jusho.txt' を出力します。
+    Output 'output/xx_jusho.txt' for each prefecture.
     """
 
     def __init__(self,
@@ -34,11 +34,22 @@ class JushoConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
-        self.prepare_jiscode_table()
+
+    def confirm(self) -> bool:
+        """
+        Show the terms of the license agreement and confirm acceptance.
+        """
+        terms = (
+            "「電子国土基本図（地名情報）「住居表示住所」を"
+            "ダウンロードします。\n注意事項や利用条件については"
+            "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
+            "を必ず確認してください。\n"
+        )
+        return super().confirm(terms)
 
     def process_line(self, args):
         """
-        住居表示住所の１行を解析して住所ノードを追加する
+        Parse a line and add an address node.
         """
         if len(args) > 9:
             raise RuntimeError("Invalid line: {}".format(args))
@@ -47,21 +58,21 @@ class JushoConverter(BaseConverter):
         uppers = self.jiscodes[jcode]
         names = []
 
-        # 大字，字レベル
+        # 大字, 字 - street level
         names = [] + self.guessAza(aza, jcode)
 
-        # 街区レベル
+        # 街区 - block level
         hugou = jaconv.h2z(gaiku, ascii=False, digit=False)
         names.append([AddressLevel.BLOCK, hugou + '番'])
 
-        # 住居表示レベル
+        # 住居表示 - street number level
         number = jaconv.h2z(kiso, ascii=False, digit=False)
         names.append([AddressLevel.BLD, number + '号'])
         self.print_line(uppers + names, lon, lat)
 
     def add_from_zipfile(self, zipfilepath):
         """
-        住居表示住所から住所表記を登録
+        Register address notations from 住居表示住所
         """
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
@@ -88,10 +99,11 @@ class JushoConverter(BaseConverter):
 
     def convert(self):
         """
-        saigai.gsi.go.jp/jusho/download/data/xx000.zip を探して整形処理を行ない、
-        output/xx_jusho.txt に出力する。
+        Read records from 'jusho/xx000.zip' files, format them,
+        then output to 'output/xx_jusho.txt'.
         """
-        # 住居表示住所レベル
+        self.prepare_jiscode_table()
+
         for pref_code in self.targets:
             output_filepath = os.path.join(
                 self.output_dir, '{}_jusho.txt'.format(pref_code))
@@ -128,13 +140,7 @@ class JushoConverter(BaseConverter):
 
         self.download(
             urls=urls,
-            dirname=self.input_dir,
-            notes=(
-                "「電子国土基本図（地名情報）「住居表示住所」を"
-                "ダウンロードします。\n注意事項や利用条件については"
-                "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
-                "を必ず確認してください。\n"
-            )
+            dirname=self.input_dir
         )
 
     def _extract_zip_urls(self, url: str) -> List[str]:

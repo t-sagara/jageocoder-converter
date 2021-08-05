@@ -136,3 +136,6 @@ dmypy.json
 /db*/
 /download/
 /text/
+
+# Other files
+/jageocoder_converter/data/jiscode.jsonl

@@ -13,10 +13,10 @@ logger = getLogger(__name__)
 
 class OazaConverter(BaseConverter):
     """
-    大字・町丁目レベル位置参照情報から大字レベルの
-    整形済みテキストデータを生成するコンバータ。
+    A converter that generates formatted text data at the
+    area level from '大字・町丁目レベル位置参照情報'.
 
-    都道府県別に 'output/xx_oaza.txt' を出力します。
+    Output 'output/xx_oaza.txt' for each prefecture.
     """
 
     def __init__(self,
@@ -29,11 +29,21 @@ class OazaConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
-        self.prepare_jiscode_table()
+
+    def confirm(self) -> bool:
+        """
+        Show the terms of the license agreement and confirm acceptance.
+        """
+        terms = (
+            "「大字・町丁目レベル位置参照情報」をダウンロードします。\n"
+            "https://nlftp.mlit.go.jp/ksj/other/agreement.html の"
+            "利用規約を必ず確認してください。\n"
+        )
+        return super().confirm(terms)
 
     def process_line(self, args):
         """
-        大字・町丁目レベル位置参照情報の１行を解析して住所ノードを追加する
+        Parse a line and add an address node.
         """
         if args[0] == '都道府県コード':
             return
@@ -47,7 +57,7 @@ class OazaConverter(BaseConverter):
 
     def add_from_zipfile(self, zipfilepath):
         """
-        大字・町丁目レベル位置参照情報から住所表記を登録
+        Register address notations from 大字・町丁目レベル位置参照情報
         """
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
@@ -74,9 +84,11 @@ class OazaConverter(BaseConverter):
 
     def convert(self):
         """
-        oaza/xx000.zip を探して整形処理を行ない、
-        output/xx_oaza.txt に出力する。
+        Read records from 'oaza/xx000*.zip' files, format them,
+        then output to 'output/xx_oaza.txt'.
         """
+        self.prepare_jiscode_table()
+
         for pref_code in self.targets:
             output_filepath = os.path.join(
                 self.output_dir, '{}_oaza.txt'.format(pref_code))
@@ -115,10 +127,5 @@ class OazaConverter(BaseConverter):
 
         self.download(
             urls=urls,
-            dirname=self.input_dir,
-            notes=(
-                "「大字・町丁目レベル位置参照情報」をダウンロードします。\n"
-                "https://nlftp.mlit.go.jp/ksj/other/agreement.html の"
-                "利用規約を必ず確認してください。\n"
-            )
+            dirname=self.input_dir
         )

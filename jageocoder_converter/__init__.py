@@ -43,48 +43,60 @@ def convert(
     targets = prefs  # Process all prefectures
     # targets = ['11', '12', '13', '14']
 
-    # Converts location reference information from various sources
-    # into the text format.
-    CityConverter(
-        input_dir=os.path.join(download_dir, 'geonlp'),
-        output_dir=output_dir,
-        priority=1,
-        targets=targets,
-        quiet=quiet,
-    ).convert()
-
-    if use_oaza:
-        OazaConverter(
-            input_dir=os.path.join(download_dir, 'oaza'),
+    # Prepare a converter for the target data set
+    converters = [
+        CityConverter(
+            input_dir=os.path.join(download_dir, 'geonlp'),
             output_dir=output_dir,
-            priority=9,
+            priority=1,
             targets=targets,
-            quiet=quiet,
-        ).convert()
+            quiet=quiet)
+    ]
+    if use_oaza:
+        converters.append(
+            OazaConverter(
+                input_dir=os.path.join(download_dir, 'oaza'),
+                output_dir=output_dir,
+                priority=9,
+                targets=targets,
+                quiet=quiet
+            ))
 
     if use_gaiku:
-        GaikuConverter(
-            input_dir=os.path.join(download_dir, 'gaiku'),
-            output_dir=output_dir,
-            priority=2,
-            targets=targets,
-            quiet=quiet,
-        ).convert()
+        converters.append(
+            GaikuConverter(
+                input_dir=os.path.join(download_dir, 'gaiku'),
+                output_dir=output_dir,
+                priority=2,
+                targets=targets,
+                quiet=quiet
+            ))
 
     if use_jusho:
-        JushoConverter(
-            input_dir=os.path.join(
-                download_dir, 'jusho'),
-            output_dir=output_dir,
-            priority=3,
-            targets=targets,
-            quiet=quiet,
-        ).convert()
+        converters.append(
+            JushoConverter(
+                input_dir=os.path.join(
+                    download_dir, 'jusho'),
+                output_dir=output_dir,
+                priority=3,
+                targets=targets,
+                quiet=quiet
+            ))
+
+    # Confirm acceptance of terms of uses.
+    for converter in converters:
+        converter.confirm()
+
+    # Converts location reference information from various sources
+    # into the text format.
+    for converter in converters:
+        converter.convert()
 
     # Create a jageocoder dictionary from the text data.
     if db_dir is None:
         db_dir = jageocoder.get_db_dir(mode='w')
 
+    # Sort data, register to the database, then create index
     manager = DataManager(
         db_dir=db_dir,
         text_dir=output_dir,
