@@ -33,7 +33,17 @@ class GaikuConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
-        self.prepare_jiscode_table()
+
+    def confirm(self) -> bool:
+        """
+        Show the terms of the license agreement and confirm acceptance.
+        """
+        terms = (
+            "「街区レベル位置参照情報」をダウンロードします。\n"
+            "https://nlftp.mlit.go.jp/ksj/other/agreement.html の"
+            "利用規約を必ず確認してください。\n"
+        )
+        return super().confirm(terms)
 
     def process_line(self, args, mode='latlon'):
         """
@@ -141,6 +151,8 @@ class GaikuConverter(BaseConverter):
         Read records from 'gaiku/xx000.zip' files, format them,
         then output to 'output/xx_gaiku.txt'.
         """
+        self.prepare_jiscode_table()
+
         for pref_code in self.targets:
             output_filepath = os.path.join(
                 self.output_dir, '{}_gaiku.txt'.format(pref_code))
@@ -179,10 +191,5 @@ class GaikuConverter(BaseConverter):
 
         self.download(
             urls=urls,
-            dirname=self.input_dir,
-            notes=(
-                "「街区レベル位置参照情報」をダウンロードします。\n"
-                "https://nlftp.mlit.go.jp/ksj/other/agreement.html の"
-                "利用規約を必ず確認してください。\n"
-            )
+            dirname=self.input_dir
         )

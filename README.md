@@ -55,7 +55,7 @@ python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
 
 If you already understand the terms of use, etc., and want to process it
 in the background, you can specify the quiet option. It may be useful
-to add a debug option to check the progress in the log file. ::
+to add a debug option to check the progress in the log file.
 
 ```sh
 nohup python -m jageocoder_converter convert --quiet --debug &

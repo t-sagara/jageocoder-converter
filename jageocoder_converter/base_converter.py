@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import sys
+import time
 from typing import TextIO, Union, Optional, NoReturn, List, Tuple
 import urllib.request
 
@@ -109,7 +110,8 @@ class BaseConverter(object):
         'running city_converter.py:read_city_data()'.
         """
         self.jiscodes = {}
-        with open(self.get_jiscode_json_path(), 'r') as f:
+        with open(self.get_jiscode_json_path(),
+                  mode='r', encoding='utf-8') as f:
             for line in f:
                 obj = json.loads(line)
                 self.jiscodes.update(obj)
@@ -124,23 +126,46 @@ class BaseConverter(object):
                 altname = itaiji_converter.standardize(names[0] + names[2])
                 self.jiscode_from_name[altname] = jiscode
 
-    def download(self, urls: List[str],
-                 dirname: Union[str, bytes, os.PathLike],
-                 notes: Optional[str] = None) -> NoReturn:
+    def confirm(self, terms_of_use: Optional[str] = None) -> bool:
         """
-        Download files from web specified by urls and save them under dirname.
-        If notes is not None, display the message and a prompt for confirmation.
-        """
-        if not os.path.exists(dirname):
-            os.makedirs(dirname, mode=0o755)
+        Show the terms of the license agreement and confirm acceptance.
 
-        while notes is not None and not self.quiet_flag:
-            enter = input(notes + " (了承する場合は Y, 中止する場合は N を入力)")
+        Parameters
+        ----------
+        terms_of_use: str, optional
+            Text containing messages or links to license conditions, etc.
+            If ommitted, return True without comfirmation.
+
+        Return
+        ------
+        bool
+            Return True if accept.
+        """
+        while terms_of_use is not None and not self.quiet_flag:
+            enter = input("\n" + terms_of_use +
+                          " (了承する場合は Y, 中止する場合は N を入力)")
             if enter == 'Y':
                 break
             elif enter == 'N':
                 print("中断します。")
                 exit(0)
+
+        return True
+
+    def download(self, urls: List[str],
+                 dirname: Union[str, bytes, os.PathLike]) -> NoReturn:
+        """
+        Download files from web specified by urls and save them under dirname.
+
+        Parameters
+        ----------
+        urls: List[str]
+            A list of link urls to files to download.
+        dirname: PathLike
+            The directory where the downloaded files will be stored.
+        """
+        if not os.path.exists(dirname):
+            os.makedirs(dirname, mode=0o755)
 
         for url in urls:
             basename = os.path.basename(url)
@@ -154,6 +179,7 @@ class BaseConverter(object):
                 "Downloading '{}'->'{}'".format(url, filename))
 
             local_filename, headers = urllib.request.urlretrieve(url, filename)
+            time.sleep(5)
 
     def set_fp(self, fp: Union[TextIO, None]) -> NoReturn:
         """

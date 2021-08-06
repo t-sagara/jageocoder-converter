@@ -8,9 +8,9 @@ Convert location reference information to jageocoder dictionary.
 
 Usage:
   {p} [-h]
-  {p} convert [-dq] [--no-oaza] [--no-gaiku] [--no-jusho] \
-    [--db-dir=<dir>] [--download-dir=<dir>] [--textdata-dir=<dir>] \
-    [<prefcodes>...]
+  {p} convert [-dq] [--no-oaza] [--no-gaiku] [--no-jusho] [--db-dir=<dir>] \
+      [--output-dir=<dir>] [--download-dir=<dir>] [--textdata-dir=<dir>] \
+      [<prefcodes>...]
 
 Options:
   -h --help       Show this help.
@@ -20,7 +20,10 @@ Options:
   --no-gaiku      Don't use 街区レベル位置参照情報.
   --no-jusho      Don't use 電子国土基本図「住居表示住所」.
   --db-dir=<dir>        Dictionary creation directory.
-  --download-dir=<dir>  Directory to download location reference information [default: download]
+  --output-dir=<dir>    Parent directory of download-dir and textdata-dir
+                        [default: ./]
+  --download-dir=<dir>  Directory to download location reference information
+                        [default: download]
   --textdata-dir=<dir>  Directory to store text format data [default: text]
   prefcodes       List of prefecture codes to be included in the dictionary.
                   If omitted, all prefectures will be included.
@@ -40,28 +43,47 @@ if __name__ == '__main__':
     if args['--debug']:
         logging.basicConfig(level=logging.DEBUG)
 
-    basedir = os.getcwd()
     kwargs = {
         'use_oaza': not args['--no-oaza'],
         'use_gaiku': not args['--no-gaiku'],
         'use_jusho': not args['--no-jusho'],
-        'download_dir': os.path.join(
-            basedir, args['--download-dir']),
-        'textdata_dir': os.path.join(
-            basedir, args['--textdata-dir']),
         'quiet': args['--quiet'],
     }
-    if args['--db-dir']:
-        kwargs['db_dir'] = os.path.join(
-            basedir, args['--db-dir'])
-    else:
-        kwargs['db_dir'] = None
 
+    # Set paths
+    basedir = os.getcwd()
+    output_dir = args['--output-dir']
+
+    if args['--db-dir'] is None:
+        kwargs['db_dir'] = None
+    elif os.path.isabs(args['--db-dir']):
+        kwargs['db_dir'] = args['--db-dir']
+    else:
+        kwargs['db_dir'] = os.path.join(
+            output_dir, args['--db-dir']
+        )
+
+    if os.path.isabs(args['--download-dir']):
+        kwargs['download_dir'] = args['--download-dir']
+    else:
+        kwargs['download_dir'] = os.path.join(
+            output_dir, args['--download-dir']
+        )
+
+    if os.path.isabs(args['--textdata-dir']):
+        kwargs['textdata_dir'] = args['--textdata-dir']
+    else:
+        kwargs['textdata_dir'] = os.path.join(
+            output_dir, args['--textdata-dir']
+        )
+
+    # Set target prefectures
     if len(args['<prefcodes>']) == 0:
         kwargs['prefs'] = None
     else:
         kwargs['prefs'] = args['<prefcodes>']
 
+    # Run converters
     db_dir = jageocoder_converter.convert(**kwargs)
 
     print("Finished. The dictionary created in {}.".format(

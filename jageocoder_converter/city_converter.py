@@ -1,11 +1,14 @@
 import csv
 import json
+from logging import getLogger
 import os
 from typing import Union, NoReturn, Optional, List
 
 from jageocoder.address import AddressLevel
 
 from jageocoder_converter import BaseConverter
+
+logger = getLogger(__name__)
 
 
 class CityConverter(BaseConverter):
@@ -27,6 +30,16 @@ class CityConverter(BaseConverter):
         self.input_dir = input_dir
         self.records = {}
 
+    def confirm(self) -> bool:
+        """
+        Show the terms of the license agreement and confirm acceptance.
+        """
+        terms = (
+            "「歴史的行政区域データセットβ版地名辞書」をダウンロードします。\n"
+            "利用条件等は {url} を確認してください。\n"
+        ).format(url='https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/')
+        return super().confirm(terms)
+
     def read_pref_file(self):
         """
         Read 'japan_pref.csv'
@@ -34,9 +47,20 @@ class CityConverter(BaseConverter):
         input_filepath = os.path.join(
             self.input_dir, 'japan_pref.csv')
         if not os.path.exists(input_filepath):
-            self.download(urls=['file://' + os.path.join(
-                os.path.dirname(__file__), 'data/japan_pref.csv')],
-                dirname=self.input_dir)
+            # Copy file to the download directory
+            src = os.path.join(os.path.dirname(
+                __file__), 'data/japan_pref.csv')
+            dst = os.path.join(self.input_dir, 'japan_pref.csv')
+            dst_dir = os.path.dirname(dst)
+            if not os.path.exists(dst_dir):
+                logger.debug('Create directory {}'.format(dst_dir))
+                os.makedirs(dst_dir, mode=0o755)
+
+            with open(src, 'rb') as f:
+                content = f.read()
+
+            with open(dst, 'wb') as f:
+                f.write(content)
 
         with open(input_filepath, 'r', encoding='cp932', newline='') as f:
             reader = csv.reader(f)
@@ -64,13 +88,10 @@ class CityConverter(BaseConverter):
             self.input_dir, 'geoshape-city.csv')
         if not os.path.exists(input_filepath):
             self.download(
-                urls=['http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'],
-                dirname=self.input_dir,
-                notes=(
-                    "「歴史的行政区域データセットβ版地名辞書」をダウンロードします。\n"
-                    "利用条件等は https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/ "
-                    "を確認してください。\n"
-                )
+                urls=[
+                    'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
+                ],
+                dirname=self.input_dir
             )
 
         jiscodes = {}
@@ -135,7 +156,7 @@ class CityConverter(BaseConverter):
         for pref_code in self.targets:
             with open(os.path.join(
                     self.output_dir, '{}_city.txt'.format(pref_code)),
-                    'w') as fout:
+                    mode='w', encoding='utf-8') as fout:
 
                 self.set_fp(fout)
                 for record in self.records[pref_code]:

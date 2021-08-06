@@ -128,7 +128,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Visual Studio Code
+.vscode/
+/*.code-workspace
+
 # Data directories
 /db*/
 /download/
 /text/
+
+# Other files
+/jageocoder_converter/data/jiscode.jsonl
