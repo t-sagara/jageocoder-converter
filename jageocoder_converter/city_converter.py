@@ -42,15 +42,16 @@ class CityConverter(BaseConverter):
 
     def read_pref_file(self):
         """
-        Read 'japan_pref.csv'
+        Read 'geoshape-pref-geolod-2021.csv'
         """
         input_filepath = os.path.join(
-            self.input_dir, 'japan_pref.csv')
+            self.input_dir, 'geoshape-pref-geolod-2021.csv')
         if not os.path.exists(input_filepath):
             # Copy file to the download directory
             src = os.path.join(os.path.dirname(
-                __file__), 'data/japan_pref.csv')
-            dst = os.path.join(self.input_dir, 'japan_pref.csv')
+                __file__), 'data/geoshape-pref-geolod-2021.csv')
+            dst = os.path.join(
+                self.input_dir, 'geoshape-pref-geolod-2021.csv')
             dst_dir = os.path.dirname(dst)
             if not os.path.exists(dst_dir):
                 logger.debug('Create directory {}'.format(dst_dir))
@@ -62,23 +63,24 @@ class CityConverter(BaseConverter):
             with open(dst, 'wb') as f:
                 f.write(content)
 
-        with open(input_filepath, 'r', encoding='cp932', newline='') as f:
+        with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
             for rows in reader:
                 if rows[0] == 'geonlp_id':
                     continue
 
-                jiscode, name, lon, lat = rows[1], rows[6], rows[11], rows[12]
+                jiscode, name = rows[1], rows[6]
+                lon, lat = rows[11], rows[12]
+                code = rows[8]
                 self.records[jiscode] = [[
-                    [[AddressLevel.PREF, name]], lon, lat,
-                    'jisx0401:'+jiscode]]
+                    [[AddressLevel.PREF, name]], lon, lat, code]]
 
                 # Register names that omit '都', '府' and '県' also
                 name = rows[2]
                 if name != '北海':
                     self.records[jiscode].append([
                         [[AddressLevel.PREF, name]],
-                        lon, lat, 'jisx0401:'+jiscode])
+                        lon, lat, code])
 
     def read_city_file(self):
         """
@@ -125,7 +127,10 @@ class CityConverter(BaseConverter):
 
                         names = [[AddressLevel.PREF, pref]]
                         if body != county and county != '':
-                            names.append([AddressLevel.COUNTY, county])
+                            if level == AddressLevel.WORD:
+                                names.append([AddressLevel.CITY, county])
+                            else:
+                                names.append([AddressLevel.COUNTY, county])
 
                         names.append([level, body])
 
