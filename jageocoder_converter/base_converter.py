@@ -341,25 +341,42 @@ class BaseConverter(object):
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西|南|北)?)$', name)
         if m:
-            return [
+            return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],
-                [AddressLevel.AZA, m.group(2)]]
+                [AddressLevel.AZA, m.group(2)]])
 
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([東西南北]?[０-９一二三四五六七八九〇十]+(丁目|線))$', name)
         if m:
-            return [
+            return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],
-                [AddressLevel.AZA, m.group(2)]]
+                [AddressLevel.AZA, m.group(2)]])
 
         m = re.match(r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+番地)$', name)
         if m:
-            return [
+            return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],
-                [AddressLevel.BLOCK, m.group(2)]]
+                [AddressLevel.BLOCK, m.group(2)]])
 
         # If it can' t be split, returned as is
         return [[AddressLevel.OAZA, name]]
+
+    def _resplit_doubled_kansuji(self, values: list) -> list:
+        """
+        If the beginning of the split second notation
+        contains two consecutive Kansuji from '一' to '九',
+        move the first character to the end of the first notation.
+
+        For example, if '与一二丁目' was split into '与' and '一二丁目',
+        this method will be re-split into '与一' and '二丁目'.
+        """
+        m = re.match(r'^([一二三四五六七八九])([一二三四五六七八九].*)$',
+                     values[1][1])
+        if m:
+            values[0][1] += m.group(1)
+            values[1][1] = m.group(2)
+
+        return values
 
     def guessAza(self, name: str, jcode: Optional[str] = None) -> str:
         """
@@ -384,6 +401,8 @@ class BaseConverter(object):
         >>> base = BaseConverter()
         >>> base.guessAza('大通西十三丁目')
         [[5, '大通'], [6, '西十三丁目']]
+        >>> base.guessAza('与一一丁目')
+        [[5, '与一'], [6, '一丁目']]
         """
         name = re.sub(r'[　\s+]', '', name)
 
