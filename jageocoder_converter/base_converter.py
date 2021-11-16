@@ -224,8 +224,8 @@ class BaseConverter(object):
 
         Parameters
         ----------
-        names: [[str, int]]
-            List of address elemenet names and levels
+        names: [[int, str]]
+            List of address element level and name
         x: float
             X value (Longitude)
         y: float
@@ -235,7 +235,8 @@ class BaseConverter(object):
         """
         line = ''
         for name in names:
-            line += '{:d};{:s},'.format(*name)
+            if name[1] != '':
+                line += '{:d};{:s},'.format(*name)
 
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)

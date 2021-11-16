@@ -7,7 +7,7 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
-from jageocoder import AddressTree
+from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
 from jageocoder.itaiji import converter as itaiji_converter
 
