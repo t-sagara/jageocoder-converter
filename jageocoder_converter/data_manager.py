@@ -7,7 +7,7 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
-from jageocoder import AddressTree
+from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
 from jageocoder.itaiji import converter as itaiji_converter
 
@@ -62,17 +62,11 @@ class DataManager(object):
 
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
-        self.tree.create_db()
         self.engine = self.tree.engine
         self.root_node = self.tree.get_root()
         self.nodes = {}
         self.cur_id = self.root_node.id
         self.prev_names = []
-
-        # Register the root node to the database
-        self.engine.execute(
-            AddressNode.__table__.insert(),
-            [{'id': -1, 'name': '_root_', 'name_index': '_root_'}])
 
     def register(self) -> NoReturn:
         """

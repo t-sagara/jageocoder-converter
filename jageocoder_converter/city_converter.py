@@ -123,11 +123,11 @@ class CityConverter(BaseConverter):
 
                         level = AddressLevel.CITY
                         if suffix == '区' and pref != '東京都':
-                            level = AddressLevel.WORD
+                            level = AddressLevel.WARD
 
                         names = [[AddressLevel.PREF, pref]]
                         if body != county and county != '':
-                            if level == AddressLevel.WORD:
+                            if level == AddressLevel.WARD:
                                 names.append([AddressLevel.CITY, county])
                             else:
                                 names.append([AddressLevel.COUNTY, county])

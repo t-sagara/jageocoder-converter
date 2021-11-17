@@ -1,6 +1,8 @@
 import os
 from typing import Optional, List, Union
 
+__version__ = '0.3.1'
+
 import jageocoder
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.city_converter import CityConverter
