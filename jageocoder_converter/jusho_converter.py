@@ -157,7 +157,8 @@ class JushoConverter(BaseConverter):
                              content):
             zip_url = os.path.join(
                 os.path.dirname(url), m.group(1))
-            logger.debug("{}: {}".format(m.group(2), zip_url))
+            logger.debug("Extracting url for {}: {}".format(
+                m.group(2), zip_url))
             urls.append(zip_url)
 
         return urls

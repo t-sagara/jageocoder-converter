@@ -104,7 +104,9 @@ class GaikuConverter(BaseConverter):
                 return
 
         if args[3] == '':
-            names += self.guessAza(args[2], jcode)
+            if args[2] != '（大字なし）':
+                names += self.guessAza(args[2], jcode)
+
         else:
             names += [[AddressLevel.OAZA, args[2]],
                       [AddressLevel.AZA, args[3]]]

@@ -39,9 +39,14 @@ Example:
 
 if __name__ == '__main__':
     args = docopt(HELP)
-
     if args['--debug']:
-        logging.basicConfig(level=logging.DEBUG)
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+
+    logging.basicConfig(
+        format='%(levelname)s:%(name)s:%(lineno)s:%(message)s',
+        level=level)
 
     kwargs = {
         'use_oaza': not args['--no-oaza'],

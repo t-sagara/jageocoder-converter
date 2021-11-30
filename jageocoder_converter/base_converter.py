@@ -335,12 +335,19 @@ class BaseConverter(object):
             List of address elements composing the given string
         """
         if not ignore_aza:
-            m = re.match(r'^([^字]+?[^文])(字.*)$', name)
+            m = re.match(r'^(.+?[^文大])((字|小字).*)$', name)
             if m:
                 return [[AddressLevel.OAZA, m.group(1)], [6, m.group(2)]]
 
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西|南|北)?)$', name)
+        if m:
+            return self._resplit_doubled_kansuji([
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]])
+
+        m = re.match(
+            r'^(.*?[０-９一二三四五六七八九〇十]+線)([東西南北]?[０-９一二三四五六七八九〇十]+号)$', name)
         if m:
             return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],
@@ -419,25 +426,32 @@ class BaseConverter(object):
             self.cache[name] = result
             return result
 
-        if name.startswith('大字'):
-            name = name[2:]
+        pos = name.find('大字')
+        if pos >= 0:
+            area_name = name[:pos]
+            sub_name = name[pos + 2:]
 
-            if jcode == '06201' and name.startswith('十文字'):
+            if jcode == '06201' and sub_name.startswith('十文字'):
                 # Exception: 山形県/山形市/大字十文字/大原 is not
                 # converted to 大字十文/字大原
                 result = [[AddressLevel.OAZA, '大字十文字'],
-                          [AddressLevel.AZA, name[3:]]]
-                self.cache[name] = result
-                return result
+                          [AddressLevel.AZA, sub_name[3:]]]
+            else:
+                m = re.match(r'^([^字]+?[^文])(字.+)', sub_name)
+                if m:
+                    result = [[AddressLevel.OAZA, '大字' + m.group(1)],
+                              [AddressLevel.AZA, m.group(2)]]
+                else:
+                    result = self._guessAza_sub(sub_name)
+                    result[0][1] = '大字' + result[0][1]
 
-            m = re.match(r'^([^字]+?[^文])(字.+)', name)
-            if m:
-                result = [[AddressLevel.OAZA, '大字' + m.group(1)],
-                          [AddressLevel.AZA, m.group(2)]]
-                self.cache[name] = result
-                return result
+            if area_name != '':
+                result.insert(0, [AddressLevel.OAZA, area_name])
+                logger.debug("'{}' -> {}".format(
+                    name, result))
 
-            return self._guessAza_sub(name)
+            self.cache[name] = result
+            return result
 
         # Exception handling when '大字・町丁目名' field value in
         # the '位置参照情報' is '（大字なし）'
