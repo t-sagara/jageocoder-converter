@@ -447,8 +447,6 @@ class BaseConverter(object):
 
             if area_name != '':
                 result.insert(0, [AddressLevel.OAZA, area_name])
-                logger.debug("'{}' -> {}".format(
-                    name, result))
 
             self.cache[name] = result
             return result
@@ -497,7 +495,8 @@ class BaseConverter(object):
             return result
 
         if jcode == '34207' and name == '駅家町大字弥生ケ':
-            result = [[AddressLevel.OAZA, '駅家町大字弥生ヶ丘']]
+            result = [[AddressLevel.OAZA, '駅家町'],
+                      [AddressLevel.OAZA, '大字弥生ヶ丘']]
             self.cache[name] = result
             return result
 
