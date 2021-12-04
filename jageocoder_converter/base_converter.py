@@ -354,7 +354,8 @@ class BaseConverter(object):
                 [AddressLevel.AZA, m.group(2)]])
 
         m = re.match(
-            r'^(.*?[^０-９一二三四五六七八九〇十])([東西南北]?[０-９一二三四五六七八九〇十]+(丁目|線))$', name)
+            r'^(.*?[^０-９一二三四五六七八九〇十])'
+            + r'([東西南北]?[０-９一二三四五六七八九〇十]+(丁目|線|丁))$', name)
         if m:
             return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],

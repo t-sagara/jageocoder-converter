@@ -110,11 +110,19 @@ class GaikuConverter(BaseConverter):
             names.append([AddressLevel.AZA, args[3]])
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
+        m = re.match(r'^([^\d]+)(\d+.*)', hugou)
         if args[10] == '1':
             # 住居表示地域
-            names.append([AddressLevel.BLOCK, hugou + '番'])
+            hugou_postfix = '番'
         else:
-            names.append([AddressLevel.BLOCK, hugou + '番地'])
+            hugou_postfix = '番地'
+
+        if m:
+            names.append([AddressLevel.AZA, m.group(1)])
+            names.append([AddressLevel.BLOCK, m.group(2) + hugou_postfix])
+            logger.debug(names)
+        else:
+            names.append([AddressLevel.BLOCK, hugou + hugou_postfix])
 
         self.print_line(uppers + names, x, y)
 
