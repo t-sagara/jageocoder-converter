@@ -8,9 +8,9 @@ Convert location reference information to jageocoder dictionary.
 
 Usage:
   {p} [-h]
-  {p} convert [-dq] [--no-oaza] [--no-gaiku] [--no-jusho] [--db-dir=<dir>] \
-      [--output-dir=<dir>] [--download-dir=<dir>] [--textdata-dir=<dir>] \
-      [<prefcodes>...]
+  {p} convert [-dq] [--no-oaza] [--no-gaiku] [--no-geolonia] [--no-jusho] \
+      [--db-dir=<dir>] [--output-dir=<dir>] [--download-dir=<dir>]
+      [--textdata-dir=<dir>] [<prefcodes>...]
 
 Options:
   -h --help       Show this help.
@@ -18,6 +18,7 @@ Options:
   -q --quiet      Quiet mode. Skip confirming the terms of use.
   --no-oaza       Don't use 大字・町丁目レベル位置参照情報.
   --no-gaiku      Don't use 街区レベル位置参照情報.
+  --no-geolonia   Don't use Geolonia 住所データ.
   --no-jusho      Don't use 電子国土基本図「住居表示住所」.
   --db-dir=<dir>        Dictionary creation directory.
   --output-dir=<dir>    Parent directory of download-dir and textdata-dir
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     kwargs = {
         'use_oaza': not args['--no-oaza'],
         'use_gaiku': not args['--no-gaiku'],
+        'use_geolonia': not args['--no-geolonia'],
         'use_jusho': not args['--no-jusho'],
         'quiet': args['--quiet'],
     }

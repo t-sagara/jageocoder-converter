@@ -194,16 +194,25 @@ class DataManager(object):
             Note
         """
 
+        def gen_key_from_names(names: List[str]) -> str:
+            return ','.join(names)
+
+        # Check duprecate addresses.
+        key = gen_key_from_names(names)
+        if key in self.nodes:
+            # logger.debug("Skip duprecate record: {}".format(key))
+            return
+
         # Delete unnecessary cache.
         if len(names) <= len(self.prev_names):
             for i in range(len(names) - 1, len(self.prev_names)):
-                key = ','.join(self.prev_names[0:i+1])
+                key = gen_key_from_names(self.prev_names[0:i+1])
                 del self.nodes[key]
 
         # Add unregistered address elements to the buffer
         parent_id = self.root_node.id
         for i, name in enumerate(names):
-            key = ','.join(names[0:i + 1])
+            key = gen_key_from_names(names[0:i + 1])
             if key in self.nodes:
                 parent_id = self.nodes[key]
                 continue

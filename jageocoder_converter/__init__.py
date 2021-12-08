@@ -1,13 +1,14 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '0.3.1'
+__version__ = '1.0.0rc1'
 
 import jageocoder
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.city_converter import CityConverter
 from jageocoder_converter.oaza_converter import OazaConverter
 from jageocoder_converter.gaiku_converter import GaikuConverter
+from jageocoder_converter.geolonia_converter import GeoloniaConverter
 from jageocoder_converter.jusho_converter import JushoConverter
 from jageocoder_converter.data_manager import DataManager
 
@@ -27,6 +28,7 @@ def convert(
     prefs: Optional[List[str]] = None,
     use_oaza: bool = True,
     use_gaiku: bool = True,
+    use_geolonia: bool = True,
     use_jusho: bool = True,
     db_dir: Optional[PathLike] = None,
     download_dir: Optional[PathLike] = None,
@@ -69,6 +71,16 @@ def convert(
             GaikuConverter(
                 input_dir=os.path.join(download_dir, 'gaiku'),
                 output_dir=output_dir,
+                priority=3,
+                targets=targets,
+                quiet=quiet
+            ))
+
+    if use_geolonia:
+        converters.append(
+            GeoloniaConverter(
+                input_dir=os.path.join(download_dir, 'geolonia'),
+                output_dir=output_dir,
                 priority=2,
                 targets=targets,
                 quiet=quiet
@@ -80,7 +92,7 @@ def convert(
                 input_dir=os.path.join(
                     download_dir, 'jusho'),
                 output_dir=output_dir,
-                priority=3,
+                priority=4,
                 targets=targets,
                 quiet=quiet
             ))

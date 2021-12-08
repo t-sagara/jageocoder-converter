@@ -9,7 +9,6 @@ import zipfile
 
 import jaconv
 from jageocoder.address import AddressLevel
-
 from jageocoder_converter.base_converter import BaseConverter
 
 logger = getLogger(__name__)
@@ -115,12 +114,15 @@ class GaikuConverter(BaseConverter):
             # 住居表示地域
             hugou_postfix = '番'
         else:
-            hugou_postfix = '番地'
+            hugou_postfix = ''
 
         if m:
+            if len(names) > 0 and names[-1][1] == m.group(1):
+                # Error handling of data with duplicate Aza and Chiban
+                names = names[:-1]
+
             names.append([AddressLevel.AZA, m.group(1)])
             names.append([AddressLevel.BLOCK, m.group(2) + hugou_postfix])
-            logger.debug(names)
         else:
             names.append([AddressLevel.BLOCK, hugou + hugou_postfix])
 
@@ -182,6 +184,33 @@ class GaikuConverter(BaseConverter):
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_zipfile(input_filepath)
+
+    def update_oaza_index(self):
+        """
+        Create Oaza index from 'gaiku/xx000.zip' files.
+        The index will be output to 'data/oazalist.txt'.
+        """
+        oaza_list = []
+        for pref_code in range(1, 48):
+            input_filepath = None
+            while input_filepath is None:
+                zipfiles = glob.glob(
+                    os.path.join(self.input_dir,
+                                 '{:02d}000*.zip'.format(pref_code)))
+                if len(zipfiles) == 0:
+                    self.download_files()
+                else:
+                    input_filepath = zipfiles[0]
+
+            logger.debug("Extracting Oaza from {}".format(
+                input_filepath))
+            oaza_list += self.create_oaza_list(input_filepath)
+
+        oaza_list = list(set(oaza_list))
+        oaza_list.sort()
+        with open(self.get_oaza_list_path(), 'w', encoding='utf-8') as f:
+            for oaza in oaza_list:
+                print(oaza, file=f)
 
     def download_files(self):
         """

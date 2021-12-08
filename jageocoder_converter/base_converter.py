@@ -1,6 +1,4 @@
-from jageocoder.address import AddressLevel
-from jageocoder.itaiji import converter as itaiji_converter
-from collections import OrderedDict
+from functools import lru_cache
 import json
 import logging
 import os
@@ -8,34 +6,14 @@ import re
 import sys
 import time
 from typing import TextIO, Union, Optional, NoReturn, List, Tuple
+
 import urllib.request
 
+from jageocoder.address import AddressLevel
+from jageocoder.itaiji import converter as itaiji_converter
 
 Address = Tuple[int, str]  # Address element level and element name
-
 logger = logging.getLogger(__name__)
-
-
-class LRU(OrderedDict):
-    'Limit size, evicting the least recently looked-up key when full'
-
-    def __init__(self, maxsize=512, *args, **kwds):
-        self.maxsize = maxsize
-        super().__init__(*args, **kwds)
-
-    def __getitem__(self, key):
-        value = super().__getitem__(key)
-        self.move_to_end(key)
-        return value
-
-    def __setitem__(self, key, value):
-        if key in self:
-            self.move_to_end(key)
-
-        super().__setitem__(key, value)
-        if len(self) > self.maxsize:
-            oldest = next(iter(self))
-            del self[oldest]
 
 
 class BaseConverter(object):
@@ -89,14 +67,13 @@ class BaseConverter(object):
         self.set_fp(fp)
         self.priority = priority
         self.quiet_flag = quiet
-        self.cache = LRU()
         self.targets = targets
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
 
     def get_jiscode_json_path(self):
         """
-        Return the file path to the 'jiscode.json'
+        Return the file path to the 'jiscode.jsonl'
         """
         return os.path.abspath(
             os.path.join(
@@ -361,6 +338,13 @@ class BaseConverter(object):
                 [AddressLevel.OAZA, m.group(1)],
                 [AddressLevel.AZA, m.group(2)]])
 
+        m = re.match(
+            r'^(.*?[０-９一二三四五六七八九〇十]+丁目)([東西南北])$', name)
+        if m:
+            return self._resplit_doubled_kansuji([
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]])
+
         m = re.match(r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+番地)$', name)
         if m:
             return self._resplit_doubled_kansuji([
@@ -387,7 +371,8 @@ class BaseConverter(object):
 
         return values
 
-    def guessAza(self, name: str, jcode: Optional[str] = None) -> str:
+    @ lru_cache
+    def guessAza(self, name: str, jcode: str = '') -> str:
         """
         Analyze the Aza-name and return the split-formatted one.
 
@@ -395,7 +380,7 @@ class BaseConverter(object):
         ----------
         name: str
             Aza-name
-        jcode: str, optional
+        jcode: str
             The jiscode of the municipality containing the address
             being processed
 
@@ -415,16 +400,12 @@ class BaseConverter(object):
         """
         name = re.sub(r'[　\s+]', '', name)
 
-        if name in self.cache:
-            return self.cache[name]
-
         if name[0] == '字':
             # Remove the leading '字'
             name = name[1:]
 
             result = self._guessAza_sub(name, ignore_aza=True)
             result[0][1] = '字' + result[0][1]
-            self.cache[name] = result
             return result
 
         pos = name.find('大字')
@@ -449,7 +430,6 @@ class BaseConverter(object):
             if area_name != '':
                 result.insert(0, [AddressLevel.OAZA, area_name])
 
-            self.cache[name] = result
             return result
 
         # Exception handling when '大字・町丁目名' field value in
@@ -476,7 +456,6 @@ class BaseConverter(object):
             if m:
                 result = [[AddressLevel.OAZA, m.group(1)],
                           [AddressLevel.AZA, m.group(2)]]
-                self.cache[name] = result
                 return result
 
         # The following address is a maintenance error and should be corrected
@@ -486,21 +465,17 @@ class BaseConverter(object):
         if jcode == '20201' and name == '若里6丁目':
             result = [[AddressLevel.OAZA, '若里'],
                       [AddressLevel.AZA, '６丁目']]
-            self.cache[name] = result
             return result
 
         if jcode == '20201' and name == '若里7丁目':
             result = [[AddressLevel.OAZA, '若里'],
                       [AddressLevel.AZA, '７丁目']]
-            self.cache[name] = result
             return result
 
         if jcode == '34207' and name == '駅家町大字弥生ケ':
             result = [[AddressLevel.OAZA, '駅家町'],
                       [AddressLevel.OAZA, '大字弥生ヶ丘']]
-            self.cache[name] = result
             return result
 
         result = self._guessAza_sub(name)
-        self.cache[name] = result
         return result

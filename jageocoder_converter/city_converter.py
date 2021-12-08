@@ -115,6 +115,7 @@ class CityConverter(BaseConverter):
                         lon = rows[head['longitude']]
                         lat = rows[head['latitude']]
                         jiscode = rows[head['code']]
+                        valid_to = rows[head['valid_to']]
 
                         if len(jiscode) < 5:  # 境界未確定地域
                             continue
@@ -139,20 +140,19 @@ class CityConverter(BaseConverter):
                                 [names, lon, lat, 'jisx0402:' + jiscode])
 
                         if jiscode not in jiscodes:
-                            jiscodes[jiscode] = [names, rows[head['valid_to']]]
+                            jiscodes[jiscode] = [names, valid_to]
                             continue
 
                         if jiscodes[jiscode][1] == '':
                             continue
 
-                        if rows[head['valid_to']] == '' or \
-                                rows[head['valid_to']] > jiscodes[jiscode][1]:
-                            jiscodes[jiscode] = [names, rows[head['valid_to']]]
+                        if valid_to == '' or valid_to > jiscodes[jiscode][1]:
+                            jiscodes[jiscode] = [names, valid_to]
 
         with open(self.get_jiscode_json_path(), 'w', encoding='utf-8') as f:
             for jiscode, args in jiscodes.items():
-                print(json.dumps({jiscode: args[0]}, ensure_ascii=False),
-                      file=f)
+                print(json.dumps(
+                    {jiscode: args[0]}, ensure_ascii=False), file=f)
 
     def write_city_files(self):
         """
