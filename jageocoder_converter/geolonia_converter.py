@@ -65,7 +65,7 @@ class GeoloniaConverter(BaseConverter):
 
         oaza = args[8]
         koaza = args[11]
-        x, y = args[12], args[13]
+        x, y = args[13], args[12]
         names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
         if koaza:
             names.append([AddressLevel.AZA, koaza])

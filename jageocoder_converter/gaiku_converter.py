@@ -22,6 +22,8 @@ class GaikuConverter(BaseConverter):
     Output 'output/xx_city.txt' for each prefecture.
     """
 
+    re_hugou = re.compile(r'^([^\d]*)(\d*[A-Z]?号?)([^\d]*)')
+
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
@@ -109,22 +111,38 @@ class GaikuConverter(BaseConverter):
             names.append([AddressLevel.AZA, args[3]])
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
-        m = re.match(r'^([^\d]+)(\d+.*)', hugou)
         if args[10] == '1':
             # 住居表示地域
-            hugou_postfix = '番'
+            if hugou[-1] >= '0' and hugou[-1] <= '9':
+                names.append([AddressLevel.BLOCK, hugou + '番'])
+            else:
+                logger.debug("Non-numeric hugou '{}' in {}".format(
+                    hugou, ','.join(args)))
+                names.append([AddressLevel.BLOCK, hugou])
         else:
-            hugou_postfix = ''
+            # 住居表示未実施地域
+            m = self.re_hugou.match(hugou)
+            aza, chiban, dropped = m.groups()
+            if aza != '':
+                if len(names) > 0 and names[-1][1] == aza:
+                    # Error handling of data with duplicate Aza and Chiban
+                    names = names[:-1]
 
-        if m:
-            if len(names) > 0 and names[-1][1] == m.group(1):
-                # Error handling of data with duplicate Aza and Chiban
-                names = names[:-1]
+                names.append([AddressLevel.AZA, aza])
+            
+            if chiban:
+                if dropped == '':
+                    names.append([AddressLevel.BLOCK, chiban + '番地'])
+                else:
+                    # 脱落地
+                    logger.debug("Dropped '{}' in {}".format(
+                        hugou, ','.join(args)))
+                    if chiban[-1] == '号':
+                        names.append([AddressLevel.BLOCK, chiban])
+                    else:
+                        names.append([AddressLevel.BLOCK, chiban + '番'])
 
-            names.append([AddressLevel.AZA, m.group(1)])
-            names.append([AddressLevel.BLOCK, m.group(2) + hugou_postfix])
-        else:
-            names.append([AddressLevel.BLOCK, hugou + hugou_postfix])
+                    names.append([AddressLevel.BLOCK, dropped + '地'])
 
         self.print_line(uppers + names, x, y)
 
