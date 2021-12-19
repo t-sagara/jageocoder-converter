@@ -71,6 +71,9 @@ class BaseConverter(object):
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
 
+        from jageocoder_converter.postcoder import PostCoder
+        self.postcoder = PostCoder.get_instance()
+
     def get_jiscode_json_path(self):
         """
         Return the file path to the 'jiscode.jsonl'
@@ -223,6 +226,33 @@ class BaseConverter(object):
             line += ',{}'.format(str(note))
 
         print(line, file=self.fp)
+
+    def print_line_with_postcode(
+            self, names: List[Address], x: float, y: float,
+            note: Optional[str] = None) -> NoReturn:
+        """
+        Outputs a single line of information with postcode.
+
+        Parameters
+        ----------
+        names: [[int, str]]
+            List of address element level and name
+        x: float
+            X value (Longitude)
+        y: float
+            Y value (Latitude)
+        note: str, optional
+            Notes (used to add codes, identifiers, etc.)
+        """
+        postcode = self.postcoder.search_by_list(names)
+        if postcode:
+            new_note = 'postcode:{}'.format(postcode)
+            if note is not None and note != '':
+                note += '/' + new_note
+            else:
+                note = new_note
+
+        self.print_line(names, x, y, note)
 
     def _arabicToNumber(self, arabic: str) -> int:
         """

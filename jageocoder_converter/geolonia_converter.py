@@ -66,11 +66,15 @@ class GeoloniaConverter(BaseConverter):
         oaza = args[8]
         koaza = args[11]
         x, y = args[13], args[12]
-        names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
-        if koaza:
-            names.append([AddressLevel.AZA, koaza])
+        if oaza != '（大字なし）':
+            names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
+        else:
+            names = self.jiscodes[ccode]
 
-        self.print_line(names, x, y)
+        if koaza:
+            names = names + [[AddressLevel.AZA, koaza]]
+
+        self.print_line_with_postcode(names, x, y)
 
     def add_from_csvfile(self, csvfilepath: str, pref_code: str):
         """

@@ -165,7 +165,7 @@ class CityConverter(BaseConverter):
 
                 self.set_fp(fout)
                 for record in self.records[pref_code]:
-                    self.print_line(*record)
+                    self.print_line_with_postcode(*record)
 
     def convert(self):
         self.records = {}

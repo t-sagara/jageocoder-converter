@@ -1,7 +1,7 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.0.0'
+__version__ = '1.1.0dev1'
 
 import jageocoder
 from jageocoder_converter.base_converter import BaseConverter
@@ -11,6 +11,7 @@ from jageocoder_converter.gaiku_converter import GaikuConverter
 from jageocoder_converter.geolonia_converter import GeoloniaConverter
 from jageocoder_converter.jusho_converter import JushoConverter
 from jageocoder_converter.data_manager import DataManager
+from jageocoder_converter.postcoder import PostCoder
 
 __all__ = [
     BaseConverter,
@@ -18,10 +19,24 @@ __all__ = [
     OazaConverter,
     GaikuConverter,
     JushoConverter,
-    DataManager,
+    DataManager
 ]
 
 PathLike = Union[str, bytes, os.PathLike]
+
+
+def __prepare_postcoder(directory: PathLike):
+    """
+    Create an instance of PostCoder
+
+    Parameters
+    ----------
+    directory: PathLike
+        The postalcode file directory.
+        If the file (ken_all.zip) doesn't exist, download it.
+    """
+    postcoder = PostCoder.get_instance(directory)
+    return postcoder
 
 
 def convert(
@@ -46,6 +61,9 @@ def convert(
 
     targets = prefs  # Process all prefectures
     # targets = ['11', '12', '13', '14']
+
+    # Prpare PostCode table
+    __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Prepare a converter for the target data set
     converters = [

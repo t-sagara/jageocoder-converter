@@ -53,7 +53,8 @@ class OazaConverter(BaseConverter):
 
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
         names = self.jiscodes[ccode]
-        self.print_line(names + self.guessAza(oaza, ccode), x, y)
+        address = names + self.guessAza(oaza, ccode)
+        self.print_line_with_postcode(address, x, y)
 
     def add_from_zipfile(self, zipfilepath):
         """

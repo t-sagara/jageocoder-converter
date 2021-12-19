@@ -129,13 +129,13 @@ class GaikuConverter(BaseConverter):
                     names = names[:-1]
 
                 names.append([AddressLevel.AZA, aza])
-            
+
             if chiban:
                 if dropped == '':
                     names.append([AddressLevel.BLOCK, chiban + '番地'])
                 else:
                     # 脱落地
-                    logger.debug("Dropped '{}' in {}".format(
+                    logger.debug("Datsurakuchi '{}' in {}".format(
                         hugou, ','.join(args)))
                     if chiban[-1] == '号':
                         names.append([AddressLevel.BLOCK, chiban])
