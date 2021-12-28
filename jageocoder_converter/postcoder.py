@@ -1,6 +1,7 @@
 import csv
 from functools import lru_cache
 import io
+import json
 from logging import getLogger
 import os
 import re
@@ -20,14 +21,16 @@ logger = getLogger(__name__)
 
 class PostCoder(BaseConverter):
 
-    re_range = re.compile(r'(.*)（([０-９]+)～([０-９]+)(.*)）')
+    re_range = re.compile(r'(.*)（([０-９～、]+)(.*)）')
+    re_koaza = re.compile(r'(.*)（(.+)）')
+
     postcoder = None
 
     def __init__(self,
                  input_dir: Union[str, bytes, os.PathLike]):
         self.input_dir = input_dir
 
-        self.addresses = []
+        self.addresses = set()
         self.codes = {}
         self.trie = None
 
@@ -79,23 +82,22 @@ class PostCoder(BaseConverter):
                             cityname = ''.join([
                                 x[1] for x in self.jiscodes[citycode]])
 
-                            m = self.re_range.match(oaza)
+                            m = self.re_koaza.match(oaza)
                             if m:
-                                head = m.group(1)
-                                from_number = strlib.get_number(m.group(2))
-                                to_number = strlib.get_number(m.group(3))
-                                tail = m.group(4)
+                                surface = m.group(2)
+                                for aza in self._parse_koaza(surface):
+                                    if aza in ('その他', '次のビルを除く'):
+                                        aza = ''
 
-                                for number in range(
-                                        from_number['n'], to_number['n'] + 1):
-                                    oaza = head + str(number) + tail
-                                    self._register_oaza(
-                                        address=cityname + oaza,
+                                    self._register_address(
+                                        oaza=cityname + m.group(1),
+                                        aza=aza,
                                         postalcode=postalcode)
 
                             else:
-                                self._register_oaza(
-                                    address=cityname + oaza,
+                                self._register_address(
+                                    oaza=cityname + oaza,
+                                    aza='',
                                     postalcode=postalcode)
 
                             pre_args = args
@@ -109,23 +111,123 @@ class PostCoder(BaseConverter):
 
         self.trie = marisa_trie.Trie(self.addresses)
 
-    def _register_oaza(self, address: str, postalcode: str) -> NoReturn:
-        standardized = converter.standardize(address)
-        self.addresses.append(standardized)
-        self.codes[standardized] = postalcode
-        # logger.debug('{} -> {}'.format(address, postalcode))
+    def _parse_koaza(self, surface: str) -> list:
+        """
+        Split koaza representations by '、'.
+        Ex. '３５～３８、４１、４２' -> ['３５～３８', '４１', '４２']
+        """
+        segments = surface.split('、')
+        for segm in segments:
+            yield segm
+
+    def _search_pattern(self, pattern: str, target: str):
+        """
+        Search pattern including numbers from target.
+
+        >>> _search_pattern('1.~19.丁目', '11.丁目')
+        True
+        """
+        logger.debug('_search_pattern("{}","{}")'.format(
+            pattern, target))
+        ranges = []
+        re_pattern = pattern
+        for m in re.finditer(r'((\d+)\.)?(~((\d+)\.)?)?', pattern):
+            if m.group(0) == '':
+                continue
+
+            span = m.group(0)
+            args = m.groups()
+            logger.debug('args:{}'.format(m.groups()))
+            if args[1] is None and args[4] is None:
+                continue
+
+            while len(args) < 5:
+                args.append(None)
+
+            re_pattern = re_pattern.replace(span, r'(\d+)\.')
+            if args[4]:
+                if args[1] is None:
+                    ranges.append([None, int(args[4])])
+                else:
+                    ranges.append([int(args[1]), int(args[4])])
+            elif args[2]:
+                ranges.append([int(args[1]), None])
+            else:
+                ranges.append([int(args[1]), int(args[1])])
+
+        logger.debug('re_pattern: "{}"'.format(re_pattern))
+        logger.debug(ranges)
+
+        m = re.search(re_pattern, target)
+        if m is None:
+            logger.debug('not match at all.')
+            return False
+
+        for i, val in enumerate(m.groups()):
+            v = int(val)
+            r = ranges[i]
+            logger.debug('Comparing value {} to range {}'.format(
+                v, r))
+            if r[0] is not None and v < r[0]:
+                logger.debug('  {} is smaller than {} (FAIL)'.format(
+                    v, r[0]))
+                return False
+
+            if r[1] is not None and v > r[1]:
+                logger.debug('  {} is larger than {} (FAIL)'.format(
+                    v, r[1]))
+                return False
+
+        logger.debug('Pass all check.')
+        return True
+
+    def _register_address(
+            self, oaza: str, aza: str, postalcode: str) -> NoReturn:
+        standardized = converter.standardize(oaza)
+        if standardized not in self.addresses:
+            self.addresses.add(standardized)
+            self.codes[standardized] = {}
+
+        aza_standardized = converter.standardize(aza)
+        self.codes[standardized][aza_standardized] = postalcode
 
     @lru_cache
     def search(self, address: str) -> Union[str, None]:
         standardized = converter.standardize(address)
-        prefixes = self.trie.prefixes(standardized)
-        if len(prefixes) == 0:
-            return None
 
-        prefixes.sort(key=lambda prefix: len(prefix), reverse=True)
-        longest_prefix = prefixes[0]
+        while True:
+            prefixes = self.trie.prefixes(standardized)
+            if len(prefixes) == 0:
+                return None
 
-        return self.codes[longest_prefix]
+            prefixes.sort(key=lambda prefix: len(prefix), reverse=True)
+            longest_prefix = prefixes[0]
+            suffix = standardized[len(longest_prefix):]
+            logger.debug(
+                '{} -> {} / {}'.format(address, longest_prefix, suffix))
+            if suffix.startswith('字'):
+                logger.debug("... remove '字' from {}".format(suffix))
+                standardized = longest_prefix + suffix[1:]
+                continue
+            elif suffix.startswith('大字'):
+                logger.debug("... remove '大字' from {}".format(suffix))
+                standardized = longest_prefix + suffix[1:]
+                continue
+
+            break
+
+        codes = self.codes[longest_prefix]
+        code_list = list(codes.keys())
+        code_list.sort(key=lambda aza: len(aza), reverse=True)
+
+        for aza_pattern in code_list:
+            if aza_pattern == '':
+                return self.codes[longest_prefix][aza_pattern]
+
+            if self._search_pattern(aza_pattern, suffix):
+                return self.codes[longest_prefix][aza_pattern]
+
+        return None
 
     def search_by_list(self, nodes: list) -> Union[str, None]:
         address_str = ''

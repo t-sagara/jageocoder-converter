@@ -87,7 +87,7 @@ class DataManager(object):
         Create relational index and trie index.
         """
         self.tree.create_tree_index()
-        self.tree.create_trie_index()
+        # self.tree.create_trie_index()
 
     def open_tmpfile(self) -> NoReturn:
         """
