@@ -50,7 +50,8 @@ class BaseConverter(object):
     def __init__(self, fp: Optional[TextIO] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False):
+                 quiet: Optional[bool] = False,
+                 disable_postcoder: Optional[bool] = False):
         """
         Initialize the converter.
 
@@ -71,8 +72,9 @@ class BaseConverter(object):
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
 
-        from jageocoder_converter.postcoder import PostCoder
-        self.postcoder = PostCoder.get_instance()
+        if not disable_postcoder:
+            from jageocoder_converter.postcoder import PostCoder
+            self.postcoder = PostCoder.get_instance()
 
     def get_jiscode_json_path(self):
         """
@@ -361,7 +363,15 @@ class BaseConverter(object):
                 [AddressLevel.AZA, m.group(2)]])
 
         m = re.match(
-            r'^(.*?[^０-９一二三四五六七八九〇十]{2,})'
+            r'^(.*?[^０-９一二三四五六七八九〇十東西南北]{2,})'
+            + r'([東西南北][０-９一二三四五六七八九〇十]+(丁目|線|丁))$', name)
+        if m:
+            return self._resplit_doubled_kansuji([
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]])
+
+        m = re.match(
+            r'^(.+?[^０-９一二三四五六七八九〇十東西南北]+)'
             + r'([東西南北]?[０-９一二三四五六七八九〇十]+(丁目|線|丁))$', name)
         if m:
             return self._resplit_doubled_kansuji([
@@ -370,6 +380,14 @@ class BaseConverter(object):
 
         m = re.match(
             r'^(.*?[０-９一二三四五六七八九〇十]+丁目)([東西南北])$', name)
+        if m:
+            return self._resplit_doubled_kansuji([
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]])
+
+        m = re.match(
+            r'^(.*?[^０-９一二三四五六七八九〇十]+)'
+            + r'([０-９一二三四五六七八九〇十]+(丁目|線|丁))$', name)
         if m:
             return self._resplit_doubled_kansuji([
                 [AddressLevel.OAZA, m.group(1)],
@@ -422,11 +440,15 @@ class BaseConverter(object):
         Examples
         --------
         >>> from jageocoder_converter.base_converter import BaseConverter
-        >>> base = BaseConverter()
+        >>> base = BaseConverter(disable_postcoder=True)
         >>> base.guessAza('大通西十三丁目')
         [[5, '大通'], [6, '西十三丁目']]
         >>> base.guessAza('与一一丁目')
         [[5, '与一'], [6, '一丁目']]
+        >>> base.guessAza('神南二丁目')
+        [[5, '神南'], [6, '二丁目']]
+        >>> base.guessAza('北十一条西十三丁目')
+        [[5, '北十一条'], [6, '西十三丁目']]
         """
         name = re.sub(r'[　\s+]', '', name)
 
