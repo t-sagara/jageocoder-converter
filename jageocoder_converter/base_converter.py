@@ -1,4 +1,5 @@
 from functools import lru_cache
+import csv
 import json
 import logging
 import os
@@ -92,7 +93,12 @@ class BaseConverter(object):
         'running city_converter.py:read_city_data()'.
         """
         self.jiscodes = {}
-        with open(self.get_jiscode_json_path(),
+        jiscode_json_path = self.get_jiscode_json_path()
+
+        if not os.path.exists(jiscode_json_path):
+            self.create_jiscodes_from_city_file()
+
+        with open(jiscode_json_path,
                   mode='r', encoding='utf-8') as f:
             for line in f:
                 obj = json.loads(line)
@@ -107,6 +113,74 @@ class BaseConverter(object):
             if len(names) == 3:
                 altname = itaiji_converter.standardize(names[0] + names[2])
                 self.jiscode_from_name[altname] = jiscode
+
+    def create_jiscodes_from_city_file(self):
+        """
+        Read 'geoshape-city.csv' and write 'jiscode.jsonl'
+        """
+        input_filepath = os.path.join(
+            self.input_dir, 'geoshape-city.csv')
+        if not os.path.exists(input_filepath):
+            self.download(
+                urls=[
+                    'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
+                ],
+                dirname=self.input_dir
+            )
+
+        jiscodes = {}
+        with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.reader(f)
+            head = {}
+            for rows in reader:
+                if rows[0] in ('geonlp_id', 'entry_id'):
+                    for i, row in enumerate(rows):
+                        head[row] = i
+
+                    continue
+
+                for pref in rows[head['prefname']].split('/'):
+                    for county in rows[head['countyname']].split('/'):
+
+                        suffix = rows[head['suffix']].rstrip('/')
+                        body = rows[head['body']] + suffix
+                        lon = rows[head['longitude']]
+                        lat = rows[head['latitude']]
+                        jiscode = rows[head['code']]
+                        valid_to = rows[head['valid_to']]
+
+                        if len(jiscode) < 5:  # 境界未確定地域
+                            continue
+
+                        jiscode = jiscode[0:5]
+
+                        level = AddressLevel.CITY
+                        if suffix == '区' and pref != '東京都':
+                            level = AddressLevel.WARD
+
+                        names = [[AddressLevel.PREF, pref]]
+                        if body != county and county != '':
+                            if level == AddressLevel.WARD:
+                                names.append([AddressLevel.CITY, county])
+                            else:
+                                names.append([AddressLevel.COUNTY, county])
+
+                        names.append([level, body])
+
+                        if jiscode not in jiscodes:
+                            jiscodes[jiscode] = [names, valid_to]
+                            continue
+
+                        if jiscodes[jiscode][1] == '':
+                            continue
+
+                        if valid_to == '' or valid_to > jiscodes[jiscode][1]:
+                            jiscodes[jiscode] = [names, valid_to]
+
+        with open(self.get_jiscode_json_path(), 'w', encoding='utf-8') as f:
+            for jiscode, args in jiscodes.items():
+                print(json.dumps(
+                    {jiscode: args[0]}, ensure_ascii=False), file=f)
 
     def confirm(self, terms_of_use: Optional[str] = None) -> bool:
         """

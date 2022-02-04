@@ -110,8 +110,8 @@ class CityConverter(BaseConverter):
                 for pref in rows[head['prefname']].split('/'):
                     for county in rows[head['countyname']].split('/'):
 
-                        body = rows[head['body']] + rows[head['suffix']]
-                        suffix = rows[head['suffix']]
+                        suffix = rows[head['suffix']].rstrip('/')
+                        body = rows[head['body']] + suffix
                         lon = rows[head['longitude']]
                         lat = rows[head['latitude']]
                         jiscode = rows[head['code']]
