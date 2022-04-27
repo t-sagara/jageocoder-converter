@@ -63,6 +63,7 @@ class GeoloniaConverter(BaseConverter):
                 ','.join(args)))
             return
 
+        note = None
         oaza = args[8]
         koaza = args[11]
         x, y = args[13], args[12]
@@ -74,7 +75,11 @@ class GeoloniaConverter(BaseConverter):
         if koaza:
             names = names + [[AddressLevel.AZA, koaza]]
 
-        self.print_line_with_postcode(names, x, y)
+        azacode = self.get_azacode(names)
+        if azacode:
+            note = 'aza_id:{}'.format(azacode[5:])
+
+        self.print_line_with_postcode(names, x, y, note)
 
     def add_from_csvfile(self, csvfilepath: str, pref_code: str):
         """
@@ -103,6 +108,7 @@ class GeoloniaConverter(BaseConverter):
         then output to 'output/xx_geolonia.txt'.
         """
         self.prepare_jiscode_table()
+        self.prepare_azacode_table()
 
         for pref_code in self.targets:
             output_filepath = os.path.join(

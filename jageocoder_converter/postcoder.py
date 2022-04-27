@@ -1,7 +1,6 @@
 import csv
 from functools import lru_cache
 import io
-import json
 from logging import getLogger
 import os
 import re
@@ -11,7 +10,6 @@ import zipfile
 import marisa_trie
 from jageocoder.address import AddressLevel
 from jageocoder.itaiji import converter
-from jageocoder.strlib import strlib
 
 from jageocoder_converter.base_converter import BaseConverter
 
@@ -203,8 +201,6 @@ class PostCoder(BaseConverter):
             prefixes.sort(key=lambda prefix: len(prefix), reverse=True)
             longest_prefix = prefixes[0]
             suffix = standardized[len(longest_prefix):]
-            logger.debug(
-                '{} -> {} / {}'.format(address, longest_prefix, suffix))
             if suffix.startswith('字'):
                 logger.debug("... remove '字' from {}".format(suffix))
                 standardized = longest_prefix + suffix[1:]

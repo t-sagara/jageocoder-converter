@@ -230,7 +230,7 @@ class DataManager(object):
                 'x': x,
                 'y': y,
                 'level': level,
-                'note': note,
+                'note': note if i == len(names) - 1 else '',
                 'parent_id': parent_id,
             }
 

@@ -1,15 +1,17 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.1.0'
+__version__ = '1.2.0dev1'
 
 import jageocoder
+import jageocoder_converter.config
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.city_converter import CityConverter
 from jageocoder_converter.oaza_converter import OazaConverter
 from jageocoder_converter.gaiku_converter import GaikuConverter
 from jageocoder_converter.geolonia_converter import GeoloniaConverter
 from jageocoder_converter.jusho_converter import JushoConverter
+from jageocoder_converter.base_registry import BaseRegistryConverter
 from jageocoder_converter.data_manager import DataManager
 from jageocoder_converter.postcoder import PostCoder
 
@@ -45,6 +47,7 @@ def convert(
     use_gaiku: bool = True,
     use_geolonia: bool = True,
     use_jusho: bool = True,
+    use_basereg: bool = True,
     db_dir: Optional[PathLike] = None,
     download_dir: Optional[PathLike] = None,
     textdata_dir: Optional[PathLike] = None,
@@ -55,6 +58,7 @@ def convert(
         basedir, 'download')
     output_dir = textdata_dir if textdata_dir else os.path.join(
         basedir, 'text')
+    jageocoder_converter.config.base_download_dir = download_dir
 
     os.makedirs(download_dir, mode=0o755, exist_ok=True)
     os.makedirs(output_dir, mode=0o755, exist_ok=True)
@@ -111,6 +115,17 @@ def convert(
                     download_dir, 'jusho'),
                 output_dir=output_dir,
                 priority=4,
+                targets=targets,
+                quiet=quiet
+            ))
+
+    if use_basereg:
+        converters.append(
+            BaseRegistryConverter(
+                input_dir=os.path.join(
+                    download_dir, 'base_registry'),
+                output_dir=output_dir,
+                priority=5,
                 targets=targets,
                 quiet=quiet
             ))

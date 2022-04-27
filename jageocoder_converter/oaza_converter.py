@@ -51,10 +51,15 @@ class OazaConverter(BaseConverter):
         if args[2] == "07023":  # 07000-12.0b のバグ
             args[2] = "07203"
 
+        note = None
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)
-        self.print_line_with_postcode(address, x, y)
+        azacode = self.get_azacode(address)
+        if azacode:
+            note = 'aza_id:{}'.format(azacode[5:])
+
+        self.print_line_with_postcode(address, x, y, note=note)
 
     def add_from_zipfile(self, zipfilepath):
         """
@@ -89,6 +94,7 @@ class OazaConverter(BaseConverter):
         then output to 'output/xx_oaza.txt'.
         """
         self.prepare_jiscode_table()
+        self.prepare_azacode_table()
 
         for pref_code in self.targets:
             output_filepath = os.path.join(
