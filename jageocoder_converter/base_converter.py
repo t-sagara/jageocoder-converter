@@ -85,6 +85,10 @@ class BaseConverter(object):
             from jageocoder_converter.postcoder import PostCoder
             self.postcoder = PostCoder.get_instance()
 
+        self.re_optional = re.compile(
+            r'({})'.format(
+                '|'.join(list('ケヶガツッノ') + ['字', '大字', '小字'])))
+
     def get_jiscode_json_path(self):
         """
         Return the file path to the 'jiscode.jsonl'
@@ -205,6 +209,27 @@ class BaseConverter(object):
                 print(json.dumps(
                     {jiscode: args[0]}, ensure_ascii=False), file=f)
 
+    def standardize_aza_name(self, names: list) -> str:
+        """
+        Convert list of address element in [leve, name] format
+        into a string with typographical deviations removed.
+        """
+        converted = ''
+        for element in names:
+            name = itaiji_converter.standardize(element[1])
+            prefix_len = itaiji_converter.check_optional_prefixes(name)
+            name = name[prefix_len:]
+            if len(name) > 1:
+                head, body, tail = name[0:1], name[1:-1], name[-1:]
+            else:
+                head, body, tail = name[0:1], '', ''
+
+            body = self.re_optional.sub('', body)
+            name = head + body + tail
+            converted += name
+
+        return converted
+
     def prepare_azacode_table(self):
         """
         Create a aza-level code table and a table for reverse lookup.
@@ -226,8 +251,7 @@ class BaseConverter(object):
 
         # Create an index for reverse lookup of JIS codes from names.
         for azacode, elements in self.azacodes.items():
-            names = [x[1] for x in elements]
-            name = itaiji_converter.standardize(''.join(names))
+            name = self.standardize_aza_name(elements)
             self.azacode_from_name[name] = azacode
 
     def create_azacodes_from_aza_file(self):
@@ -304,7 +328,7 @@ class BaseConverter(object):
 
             chome = row[head['丁目名']]
             if chome:
-                names.append([AddressLevel.OAZA, chome])
+                names.append([AddressLevel.AZA, chome])
 
             aza = row[head['小字名']]
             if aza:
@@ -426,10 +450,12 @@ class BaseConverter(object):
         The AZA code is a string consisting of a 5-digit city code
         concatenated with a 7-digit Aza-ID.
         """
-        name = ''.join([x[1] for x in elements])
-        st_name = itaiji_converter.standardize(name)
+        st_name = self.standardize_aza_name(elements)
         if st_name in self.azacode_from_name:
             return self.azacode_from_name[st_name]
+        else:
+            logger.debug("'{}' is not in the azacode list.".format(
+                ''.join([x[1] for x in elements])))
 
         return None
 
