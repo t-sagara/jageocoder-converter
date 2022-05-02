@@ -5,6 +5,7 @@ from logging import getLogger
 import os
 import time
 from typing import Union, NoReturn, Optional, List
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -139,7 +140,7 @@ class BaseRegistryConverter(BaseConverter):
 
         return orig_code + checkdigit
 
-    def download_files(self):
+    def download_files(self) -> NoReturn:
         """
         Download separated data files from
         'Base Registry Data Catalog Site'
@@ -147,10 +148,18 @@ class BaseRegistryConverter(BaseConverter):
         ex. https://registry-catalog.registries.digital.go.jp/-
             api/3/action/package_show?id=o1-130001_g2-000006
         """
-        api_url = 'https://registry-catalog.registries.digital.go.jp/api/3/action/'
+        api_url = (
+            'https://registry-catalog.registries.digital.go.jp/'
+            'api/3/action/')
         dataset_id_list = []
         download_urls = []
-        # Add '町字マスター位置参照拡張' of each prefecture
+
+        # Add the following dataset of each prefecture
+        # 0000004: 住居表示・街区マスター
+        # 0000005: 住居表示・住居マスター
+        # 0000006: 町字マスター位置参照拡張
+        # 0000007: 住居表示－街区マスター位置参照拡張
+        # 0000008: 住居表示－住居マスター位置参照拡張
         for pref_code in self.targets:
             input_filepath = os.path.join(
                 self.input_dir,
@@ -159,8 +168,9 @@ class BaseRegistryConverter(BaseConverter):
                 continue
 
             pref_local_code = self._local_authority_code(pref_code + '000')
-            dataset_id_list.append('o1-{}_g2-000006'.format(
-                pref_local_code))
+            for dataset_code in (4, 5, 6, 7, 8):
+                dataset_id_list.append('o1-{:s}_g2-{:06d}'.format(
+                    pref_local_code, dataset_code))
 
         for dataset_id in dataset_id_list:
             url = api_url + 'package_show?id={}'.format(dataset_id)
@@ -168,14 +178,49 @@ class BaseRegistryConverter(BaseConverter):
                 "Getting metadata of package '{}'".format(dataset_id))
             with urllib.request.urlopen(url) as response:
                 rawdata = response.read()
-                metadata = json.loads(rawdata)
-                for extra in metadata['result']['extras']:
-                    if extra["key"].endswith('dcat:accessURL'):
-                        url = extra["value"]
-                        download_urls.append(url)
+                result = json.loads(rawdata)
+                metadata = result['result']
+                download_url = self.dataurl_from_metadata(
+                    metadata, self.input_dir)
+                if download_url is not None:
+                    logger.debug(
+                        "  {} is added to download list.".format(
+                            download_url))
+                    download_urls.append(download_url)
 
             time.sleep(1)
 
+        """
+        # Download list of "位置参照拡張"
+        count = 0
+        query_url = "{}package_search?q={}&sort=id+asc".format(
+            api_url, urllib.parse.quote(
+                '"位置参照拡張" or "住居表示・住居マスター"'))
+        url = "{}&rows=0".format(query_url)  # Get number of packages
+        logger.debug("Get record count from {}".format(url))
+        with urllib.request.urlopen(url) as response:
+            result = json.loads(response.read())
+            count = result['result']['count']
+            logger.debug("Found {} datasets.".format(count))
+
+        for start in range(0, count, 100):
+            url = "{}&rows=100&start={}".format(
+                query_url, start)  # Get 100 packages
+            logger.debug("Get 100 records from {}".format(url))
+            with urllib.request.urlopen(url) as response:
+                result = json.loads(response.read())
+                for metadata in result['result']['results']:
+                    download_url = self.dataurl_from_metadata(metadata)
+                    if download_url is not None:
+                        logger.debug(
+                            "  {} is added to download list.".format(
+                                download_url))
+                        download_urls.append(download_url)
+
+            time.sleep(1)
+        """
+
+        # Download data files in the list
         self.download(
             urls=download_urls,
             dirname=self.input_dir

@@ -1,5 +1,6 @@
 from functools import lru_cache
 import csv
+import datetime
 import io
 import json
 import logging
@@ -258,23 +259,25 @@ class BaseConverter(object):
         """
         Read 'mt_town_all.csv.zip' and write 'azacode.jsonl'
         """
-        zipfilepath = os.path.join(
-            jageocoder_converter.config.base_download_dir,
-            'mt_town_all.csv.zip')
-        if not os.path.exists(zipfilepath):
-            api_url = 'https://registry-catalog.registries.digital.go.jp/api/3/action/'
-            dataset_id = 'o1-000000_g2-000003'
-            url = api_url + 'package_show?id={}'.format(dataset_id)
-            logger.debug("Getting metadata of package '{}'".format(dataset_id))
-            with urllib.request.urlopen(url) as response:
-                metadata = json.loads(response.read())
-                for extra in metadata['result']['extras']:
-                    if extra["key"].endswith('dcat:accessURL'):
-                        url = extra["value"]
-                        self.download(
-                            urls=[url],
-                            dirname=jageocoder_converter.config.base_download_dir)
+        data_dir = jageocoder_converter.config.base_download_dir
+        api_url = (
+            'https://registry-catalog.registries.digital.go.jp/'
+            'api/3/action/')
+        dataset_id = 'o1-000000_g2-000003'
+        url = api_url + 'package_show?id={}'.format(dataset_id)
+        logger.debug("Getting metadata of package '{}'".format(dataset_id))
+        download_url = None
+        with urllib.request.urlopen(url) as response:
+            result = json.loads(response.read())
+            metadata = result['result']
+            download_url = self.dataurl_from_metadata(metadata, data_dir)
 
+        if download_url:
+            self.download(
+                urls=[download_url],
+                dirname=data_dir)
+
+        zipfilepath = os.path.join(data_dir, 'mt_town_all.csv.zip')
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
                 if not filename.lower().endswith('.csv'):
@@ -285,6 +288,54 @@ class BaseConverter(object):
                         f, encoding='utf-8', newline='',
                         errors='backslashreplace')
                     self.create_azacode_jsonfile(ft)
+
+    def dataurl_from_metadata(
+            self,
+            metadata: dict,
+            data_dir: Optional[os.PathLike] = None) -> Union[str, None]:
+        """
+        Check CKAN metadata from address-base-registry,
+        extract download file url from the metadata.
+
+        Parameters
+        ----------
+        metadata: dict
+            JSON decoded CKAN metadata.
+        data_dir: PathLike, optional
+            The directory where the datafile will be placed.
+
+        Return
+        ------
+        str:
+            The url where the data can be downloaded.
+            If the file already exists and updated,
+            return None.
+        """
+        download_url = None
+        data_dir = data_dir or self.input_dir
+        issued_at = datetime.datetime.fromisoformat(
+            '2000-01-01T00:00')
+        modified_at = datetime.datetime.fromisoformat(
+            '2000-01-01T00:00')
+        for extra in metadata['extras']:
+            if extra["key"].endswith('dct:issued'):
+                issued_at = datetime.datetime.fromisoformat(
+                    extra["value"])
+            if extra["key"].endswith('dct:modified'):
+                modified_at = datetime.datetime.fromisoformat(
+                    extra["value"])
+            elif extra["key"].endswith('dcat:accessURL'):
+                url = extra["value"]
+                basename = os.path.basename(url)
+                filepath = os.path.join(data_dir, basename)
+                if not os.path.exists(filepath) or \
+                        os.path.getmtime(filepath) < max(
+                            issued_at.timestamp(),
+                            modified_at.timestamp()):
+                    download_url = url
+                    break
+
+        return download_url
 
     def create_azacode_jsonfile(self, fp):
         """
