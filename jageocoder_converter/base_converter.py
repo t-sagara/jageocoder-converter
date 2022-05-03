@@ -559,13 +559,14 @@ class BaseConverter(object):
         note: str, optional
             Notes (used to add codes, identifiers, etc.)
         """
-        postcode = self.postcoder.search_by_list(names)
-        if postcode:
-            new_note = 'postcode:{}'.format(postcode)
-            if note is not None and note != '':
-                note += '/' + new_note
-            else:
-                note = new_note
+        if names[-1][0] <= AddressLevel.AZA:
+            postcode = self.postcoder.search_by_list(names)
+            if postcode:
+                new_note = 'postcode:{}'.format(postcode)
+                if note is not None and note != '':
+                    note += '/' + new_note
+                else:
+                    note = new_note
 
         self.print_line(names, x, y, note)
 
