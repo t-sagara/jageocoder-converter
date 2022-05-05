@@ -40,7 +40,6 @@ def __prepare_postcoder(directory: PathLike):
     postcoder = PostCoder.get_instance(directory)
     return postcoder
 
-
 def convert(
     prefs: Optional[List[str]] = None,
     use_oaza: bool = True,
@@ -64,7 +63,12 @@ def convert(
     os.makedirs(output_dir, mode=0o755, exist_ok=True)
 
     targets = prefs  # Process all prefectures
-    # targets = ['11', '12', '13', '14']
+
+    # Create data manager
+    manager = DataManager(
+        db_dir=db_dir or jageocoder.get_db_dir(mode='w'),
+        text_dir=output_dir,
+        targets=targets)
 
     # Prpare PostCode table
     __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
@@ -72,6 +76,7 @@ def convert(
     # Prepare a converter for the target data set
     converters = [
         CityConverter(
+            manager=manager,
             input_dir=os.path.join(download_dir, 'geonlp'),
             output_dir=output_dir,
             priority=1,
@@ -81,6 +86,7 @@ def convert(
     if use_oaza:
         converters.append(
             OazaConverter(
+                manager=manager,
                 input_dir=os.path.join(download_dir, 'oaza'),
                 output_dir=output_dir,
                 priority=9,
@@ -91,6 +97,7 @@ def convert(
     if use_gaiku:
         converters.append(
             GaikuConverter(
+                manager=manager,
                 input_dir=os.path.join(download_dir, 'gaiku'),
                 output_dir=output_dir,
                 priority=3,
@@ -101,6 +108,7 @@ def convert(
     if use_geolonia:
         converters.append(
             GeoloniaConverter(
+                manager=manager,
                 input_dir=os.path.join(download_dir, 'geolonia'),
                 output_dir=output_dir,
                 priority=2,
@@ -111,6 +119,7 @@ def convert(
     if use_jusho:
         converters.append(
             JushoConverter(
+                manager=manager,
                 input_dir=os.path.join(
                     download_dir, 'jusho'),
                 output_dir=output_dir,
@@ -122,6 +131,7 @@ def convert(
     if use_basereg:
         converters.append(
             BaseRegistryConverter(
+                manager=manager,
                 input_dir=os.path.join(
                     download_dir, 'base_registry'),
                 output_dir=output_dir,
@@ -136,18 +146,11 @@ def convert(
 
     # Converts location reference information from various sources
     # into the text format.
+    converters[0].prepare_aza_table()
     for converter in converters:
         converter.convert()
 
-    # Create a jageocoder dictionary from the text data.
-    if db_dir is None:
-        db_dir = jageocoder.get_db_dir(mode='w')
-
     # Sort data, register to the database, then create index
-    manager = DataManager(
-        db_dir=db_dir,
-        text_dir=output_dir,
-        targets=targets)
     manager.register()
     manager.create_index()
 

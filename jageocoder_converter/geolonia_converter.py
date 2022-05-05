@@ -20,10 +20,12 @@ class GeoloniaConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
+                 manager: Optional["DataManager"] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> NoReturn:
-        super().__init__(priority=priority, targets=targets, quiet=quiet)
+        super().__init__(
+            manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
@@ -75,7 +77,7 @@ class GeoloniaConverter(BaseConverter):
         if koaza:
             names = names + [[AddressLevel.AZA, koaza]]
 
-        azacode = self.get_azacode(names)
+        azacode = self.code_from_names(names)
         if azacode:
             note = 'aza_id:{}'.format(azacode[5:])
 
@@ -108,7 +110,6 @@ class GeoloniaConverter(BaseConverter):
         then output to 'output/xx_geolonia.txt'.
         """
         self.prepare_jiscode_table()
-        self.prepare_azacode_table()
 
         for pref_code in self.targets:
             output_filepath = os.path.join(

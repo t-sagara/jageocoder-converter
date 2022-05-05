@@ -22,10 +22,12 @@ class CityConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
+                 manager: Optional["DataManager"] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> NoReturn:
-        super().__init__(priority=priority, targets=targets, quiet=quiet)
+        super().__init__(
+            manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.records = {}

@@ -1,6 +1,7 @@
-from functools import lru_cache
+from contextlib import contextmanager
 import csv
 import datetime
+from functools import lru_cache
 import io
 import json
 import logging
@@ -11,9 +12,11 @@ import time
 from typing import TextIO, Union, Optional, NoReturn, List, Tuple
 import zipfile
 
-import urllib.request
 from jageocoder.address import AddressLevel
+from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
+from sqlalchemy import Index
+import urllib.request
 
 import jageocoder_converter.config
 
@@ -57,11 +60,13 @@ class BaseConverter(object):
     azacodes = {}
     azacode_from_name = {}
 
-    def __init__(self, fp: Optional[TextIO] = None,
-                 priority: Optional[int] = None,
-                 targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False,
-                 disable_postcoder: Optional[bool] = False):
+    def __init__(
+            self, fp: Optional[TextIO] = None,
+            manager: Optional["DataManager"] = None,
+            priority: Optional[int] = None,
+            targets: Optional[List[str]] = None,
+            quiet: Optional[bool] = False,
+            disable_postcoder: Optional[bool] = False):
         """
         Initialize the converter.
 
@@ -76,6 +81,7 @@ class BaseConverter(object):
             List of prefecture codes (JISX0401) to be processed
         """
         self.set_fp(fp)
+        self.manager = manager
         self.priority = priority
         self.quiet_flag = quiet
         self.targets = targets
@@ -85,10 +91,6 @@ class BaseConverter(object):
         if not disable_postcoder:
             from jageocoder_converter.postcoder import PostCoder
             self.postcoder = PostCoder.get_instance()
-
-        self.re_optional = re.compile(
-            r'({})'.format(
-                '|'.join(list('ケヶガツッノ') + ['字', '大字', '小字'])))
 
     def get_jiscode_json_path(self):
         """
@@ -101,18 +103,6 @@ class BaseConverter(object):
         os.makedirs(data_dir, 0o755, exist_ok=True)
 
         return os.path.join(data_dir, 'jiscode.jsonl')
-
-    def get_azacode_json_path(self):
-        """
-        Return the file path to the 'azacode.jsonl'
-        """
-        data_dir = os.path.abspath(
-            os.path.join(
-                jageocoder_converter.config.base_download_dir,
-                'data'))
-        os.makedirs(data_dir, 0o755, exist_ok=True)
-
-        return os.path.join(data_dir, 'azacode.jsonl')
 
     def prepare_jiscode_table(self):
         """
@@ -210,84 +200,82 @@ class BaseConverter(object):
                 print(json.dumps(
                     {jiscode: args[0]}, ensure_ascii=False), file=f)
 
-    def standardize_aza_name(self, names: list) -> str:
+    @contextmanager
+    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
         """
-        Convert list of address element in [leve, name] format
-        into a string with typographical deviations removed.
+        Get file pointer to the first csv file in the zipfile.
+
+        Parameters
+        ----------
+        zipfilepath: PathLike
+            Path to the target zipfile.
         """
-        converted = ''
-        for element in names:
-            name = itaiji_converter.standardize(element[1])
-            prefix_len = itaiji_converter.check_optional_prefixes(name)
-            name = name[prefix_len:]
-            if len(name) > 1:
-                head, body, tail = name[0:1], name[1:-1], name[-1:]
-            else:
-                head, body, tail = name[0:1], '', ''
+        try:
+            with zipfile.ZipFile(zipfilepath) as z:
+                csvfile = None
+                for filename in z.namelist():
+                    if filename.lower().endswith('.csv'):
+                        csvfile = filename
+                        break
 
-            body = self.re_optional.sub('', body)
-            name = head + body + tail
-            converted += name
+                if csvfile is None:
+                    raise RuntimeError("No csv file is found in the zipfile.")
 
-        return converted
-
-    def prepare_azacode_table(self):
-        """
-        Create a aza-level code table and a table for reverse lookup.
-        The original data, data/basereg.json, is created by
-        running "base_registry.py:read_oaza_master()" once.
-        """
-        if len(self.azacodes) > 0:
-            return
-
-        azacode_json_path = self.get_azacode_json_path()
-        if not os.path.exists(azacode_json_path):
-            self.create_azacodes_from_aza_file()
-
-        with open(azacode_json_path,
-                  mode='r', encoding='utf-8') as f:
-            for line in f:
-                obj = json.loads(line)
-                self.azacodes.update(obj)
-
-        # Create an index for reverse lookup of JIS codes from names.
-        for azacode, elements in self.azacodes.items():
-            name = self.standardize_aza_name(elements)
-            self.azacode_from_name[name] = azacode
-
-    def create_azacodes_from_aza_file(self):
-        """
-        Read 'mt_town_all.csv.zip' and write 'azacode.jsonl'
-        """
-        data_dir = jageocoder_converter.config.base_download_dir
-        api_url = (
-            'https://registry-catalog.registries.digital.go.jp/'
-            'api/3/action/')
-        dataset_id = 'o1-000000_g2-000003'
-        url = api_url + 'package_show?id={}'.format(dataset_id)
-        logger.debug("Getting metadata of package '{}'".format(dataset_id))
-        download_url = None
-        with urllib.request.urlopen(url) as response:
-            result = json.loads(response.read())
-            metadata = result['result']
-            download_url = self.dataurl_from_metadata(metadata, data_dir)
-
-        if download_url:
-            self.download(
-                urls=[download_url],
-                dirname=data_dir)
-
-        zipfilepath = os.path.join(data_dir, 'mt_town_all.csv.zip')
-        with zipfile.ZipFile(zipfilepath) as z:
-            for filename in z.namelist():
-                if not filename.lower().endswith('.csv'):
-                    continue
-
-                with z.open(filename, mode='r') as f:
+                with z.open(csvfile, mode='r') as f:
                     ft = io.TextIOWrapper(
                         f, encoding='utf-8', newline='',
                         errors='backslashreplace')
-                    self.create_azacode_jsonfile(ft)
+                    logger.debug("Opening csvfile {} in zipfile {}.".format(
+                        csvfile, zipfilepath))
+                    yield ft
+
+        finally:
+            logger.debug("Zipfile has been closed.")
+
+    def prepare_aza_table(self):
+        """
+        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
+        """
+        logger.debug("Creating aza_master table...")
+        data_dir = jageocoder_converter.config.base_download_dir
+        zipfilepath = os.path.join(data_dir, 'mt_town_all.csv.zip')
+        if not os.path.exists(zipfilepath):
+            api_url = (
+                'https://registry-catalog.registries.digital.go.jp/'
+                'api/3/action/')
+            dataset_id = 'o1-000000_g2-000003'
+            url = api_url + 'package_show?id={}'.format(dataset_id)
+            logger.debug("Getting metadata of package '{}'".format(dataset_id))
+            download_url = None
+            with urllib.request.urlopen(url) as response:
+                result = json.loads(response.read())
+                metadata = result['result']
+                download_url = self.dataurl_from_metadata(metadata, data_dir)
+
+        with self.open_csv_in_zipfile(zipfilepath) as ft:
+            reader = csv.DictReader(ft)
+            n = 0
+            aza_codes = {}
+            for row in reader:
+                if row["全国地方公共団体コード"][0:2] not in self.targets:
+                    continue
+
+                record = AzaMaster.from_csvrow(row)
+                if record.code not in aza_codes:
+                    aza_codes[record.code] = True
+                    self.manager.session.add(record)
+
+                n += 1
+                if n % 10000 == 0:
+                    logger.debug("  read {} records.".format(n))
+                    self.manager.session.commit()
+
+        self.manager.session.commit()
+        logger.debug("  Creating index on aza_master.names_index...")
+        aza_master_names_index = Index(
+            'ix_aza_master_names_index', AzaMaster.names_index)
+        aza_master_names_index.create(self.manager.engine)
+
 
     def dataurl_from_metadata(
             self,
@@ -336,62 +324,6 @@ class BaseConverter(object):
                     break
 
         return download_url
-
-    def create_azacode_jsonfile(self, fp):
-        """
-        Read 'mt_town_all.csv' in the Aza-master zipfile
-        and generate 'azacode.jsonl' file.
-        """
-        logger.debug("Creating azacode.jsonl from mt_town_all.csv")
-        azacodes = {}
-        reader = csv.reader(fp)
-        head = {}
-        for row in reader:
-            if 'コード' in row[0]:
-                for i, rowname in enumerate(row):
-                    head[rowname] = i
-
-                continue
-
-            jiscode = row[head['全国地方公共団体コード']][0:5]
-            azacode = jiscode + row[head['町字id']]
-            names = []
-
-            pref = row[head['都道府県名']]
-            if pref:
-                names.append([AddressLevel.PREF, pref])
-
-            county = row[head['郡名']]
-            if county:
-                names.append([AddressLevel.COUNTY, county])
-
-            city = row[head['市区町村名']]
-            if city:
-                names.append([AddressLevel.CITY, city])
-
-            ward = row[head['政令市区名']]
-            if ward:
-                names.append([AddressLevel.WARD, ward])
-
-            oaza = row[head['大字・町名']]
-            if oaza:
-                names.append([AddressLevel.OAZA, oaza])
-
-            chome = row[head['丁目名']]
-            if chome:
-                names.append([AddressLevel.AZA, chome])
-
-            aza = row[head['小字名']]
-            if aza:
-                names.append([AddressLevel.AZA, aza])
-
-            if azacode not in azacodes:
-                azacodes[azacode] = names
-
-        with open(self.get_azacode_json_path(), 'w', encoding='utf-8') as f:
-            for azacode, names in azacodes.items():
-                print(json.dumps(
-                    {azacode: names}, ensure_ascii=False), file=f)
 
     def confirm(self, terms_of_use: Optional[str] = None) -> bool:
         """
@@ -482,31 +414,47 @@ class BaseConverter(object):
 
         return None
 
-    def get_azacode(self, elements: list) -> Union[str, None]:
+    def code_from_names(
+            self,
+            elements: list) -> Union[str, None]:
         """
-        Get azacode from a list of address element.
+        Retrieve AzaMaster code from a list of address elements.
 
         Parameters
         ----------
         elements: list
-            List of address element ([level, name])
+            List of address elements ([level, name])
 
         Return
         ------
-        str, None
+        str
             azacode or None.
-
-        Note
-        ----
-        The AZA code is a string consisting of a 5-digit city code
-        concatenated with a 7-digit Aza-ID.
         """
-        st_name = self.standardize_aza_name(elements)
-        if st_name in self.azacode_from_name:
-            return self.azacode_from_name[st_name]
-        else:
-            logger.debug("'{}' is not in the azacode list.".format(
-                ''.join([x[1] for x in elements])))
+        aza_row = AzaMaster.search_by_names(elements, self.manager.session)
+        if aza_row:
+            return aza_row.code
+
+        return None
+
+    def names_from_code(
+            self,
+            code: str) -> Union[List[str], None]:
+        """
+        Get a list of address elements from an azacode.
+
+        Parameters
+        ----------
+        code: str
+            Azacode.
+
+        Return
+        ------
+        List[str], None
+            List of address elements if the code exists, or None.
+        """
+        aza_row = AzaMaster.search_by_code(code, self.manager.session)
+        if aza_row:
+            return json.loads(aza_row.names)
 
         return None
 

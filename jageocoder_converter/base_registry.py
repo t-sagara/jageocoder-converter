@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import copy
 import csv
 import io
@@ -29,10 +28,12 @@ class BaseRegistryConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
+                 manager: Optional["DataManager"] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> NoReturn:
-        super().__init__(priority=priority, targets=targets, quiet=quiet)
+        super().__init__(
+            manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
@@ -74,7 +75,7 @@ class BaseRegistryConverter(BaseConverter):
         for row in reader:
             citycode = row["全国地方公共団体コード"][0:5]
             aza_id = row["町字id"]
-            names = self.azacodes[citycode + aza_id]
+            names = self.names_from_code(citycode + aza_id)
             x, y = row["代表点_経度"], row["代表点_緯度"]
             note = 'aza_id:{}'.format(aza_id)
             if not x or not y:
@@ -119,7 +120,7 @@ class BaseRegistryConverter(BaseConverter):
                 row["代表点_緯度"], row["代表点_経度"])
             block_name = row["位置参照情報_街区符号・地番"] + \
                 ("番" if row["住居表示フラグ"] == "1" else "番地")
-            names = copy.copy(self.azacodes[aza_code])
+            names = copy.copy(self.names_from_code(aza_code))
             names.append([AddressLevel.BLOCK, block_name])
             self.blocks[block_code] = names
             if not x or not y:
@@ -207,7 +208,7 @@ class BaseRegistryConverter(BaseConverter):
                         "市区町村名", "政令市区名", "大字・町名", "丁目名",
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 # logger.warning(msg)
-                names = copy.copy(self.azacodes[codes["aza"]])
+                names = copy.copy(self.names_from_code(codes["aza"]))
                 if row["街区符号"]:
                     block_name = row["街区符号"] + \
                         ("番" if row["住居表示フラグ"] == "1" else "番地")
@@ -233,45 +234,12 @@ class BaseRegistryConverter(BaseConverter):
 
             self.print_line(names, x, y)
 
-    @contextmanager
-    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
-        """
-        Get file pointer to the first csv file in the zipfile.
-
-        Parameters
-        ----------
-        zipfilepath: PathLike
-            Path to the target zipfile.
-        """
-        try:
-            with zipfile.ZipFile(zipfilepath) as z:
-                csvfile = None
-                for filename in z.namelist():
-                    if filename.lower().endswith('.csv'):
-                        csvfile = filename
-                        break
-
-                if csvfile is None:
-                    raise RuntimeError("No csv file is found in the zipfile.")
-
-                with z.open(csvfile, mode='r') as f:
-                    ft = io.TextIOWrapper(
-                        f, encoding='utf-8', newline='',
-                        errors='backslashreplace')
-                    logger.debug("Opening csvfile {} in zipfile {}.".format(
-                        csvfile, zipfilepath))
-                    yield ft
-
-        finally:
-            logger.debug("Zipfile has been closed.")
-
     def convert(self):
         """
         Read records from 'geolonia/latest.csv' file, format them,
         then output to 'output/xx_geolonia.txt'.
         """
         self.prepare_jiscode_table()
-        self.prepare_azacode_table()
         self.download_files()
 
         for pref_code in self.targets:

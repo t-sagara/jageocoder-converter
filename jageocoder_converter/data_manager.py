@@ -7,9 +7,9 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
+from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
-from jageocoder.itaiji import converter as itaiji_converter
 
 logger = getLogger(__name__)
 
@@ -63,6 +63,7 @@ class DataManager(object):
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
         self.engine = self.tree.engine
+        self.session = self.tree.session
         self.root_node = self.tree.get_root()
         self.nodes = {}
         self.cur_id = self.root_node.id
@@ -81,6 +82,10 @@ class DataManager(object):
             self.open_tmpfile()
             self.sort_data(prefcode=prefcode)
             self.write_database()
+
+        # Create other tables
+        self.tree.create_reverse_index()
+        self.tree.create_note_index_table()
 
     def create_index(self) -> NoReturn:
         """
@@ -137,9 +142,10 @@ class DataManager(object):
             self.process_line(args)
 
         if len(self.buffer) > 0:
-            self.engine.execute(
+            self.session.execute(
                 AddressNode.__table__.insert(),
                 self.buffer)
+            self.session.commit()
 
     def get_next_id(self):
         """

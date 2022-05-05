@@ -22,10 +22,12 @@ class OazaConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
+                 manager: Optional["DataManager"] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> NoReturn:
-        super().__init__(priority=priority, targets=targets, quiet=quiet)
+        super().__init__(
+            manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
@@ -55,7 +57,7 @@ class OazaConverter(BaseConverter):
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)
-        azacode = self.get_azacode(address)
+        azacode = self.code_from_names(address)
         if azacode:
             note = 'aza_id:{}'.format(azacode[5:])
 
@@ -94,7 +96,6 @@ class OazaConverter(BaseConverter):
         then output to 'output/xx_oaza.txt'.
         """
         self.prepare_jiscode_table()
-        self.prepare_azacode_table()
 
         for pref_code in self.targets:
             output_filepath = os.path.join(
