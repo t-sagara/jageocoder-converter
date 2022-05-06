@@ -88,9 +88,8 @@ class BaseConverter(object):
         if self.targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
 
-        if not disable_postcoder:
-            from jageocoder_converter.postcoder import PostCoder
-            self.postcoder = PostCoder.get_instance()
+        self.postcoder = None
+        self.disable_postcoder = disable_postcoder
 
     def get_jiscode_json_path(self):
         """
@@ -252,6 +251,8 @@ class BaseConverter(object):
                 metadata = result['result']
                 download_url = self.dataurl_from_metadata(metadata, data_dir)
 
+            self.download(urls=[download_url], dirname=data_dir)
+
         with self.open_csv_in_zipfile(zipfilepath) as ft:
             reader = csv.DictReader(ft)
             n = 0
@@ -275,7 +276,6 @@ class BaseConverter(object):
         aza_master_names_index = Index(
             'ix_aza_master_names_index', AzaMaster.names_index)
         aza_master_names_index.create(self.manager.engine)
-
 
     def dataurl_from_metadata(
             self,
@@ -507,6 +507,14 @@ class BaseConverter(object):
         note: str, optional
             Notes (used to add codes, identifiers, etc.)
         """
+        if self.disable_postcoder is True:
+            self.print_line(names, x, y, note)
+            return
+
+        if self.postcoder is None:
+            from jageocoder_converter.postcoder import PostCoder
+            self.postcoder = PostCoder.get_instance()
+
         if names[-1][0] <= AddressLevel.AZA:
             postcode = self.postcoder.search_by_list(names)
             if postcode:

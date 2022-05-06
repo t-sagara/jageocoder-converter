@@ -1,7 +1,7 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.2.0dev1'
+__version__ = '1.2.0rc1'
 
 import jageocoder
 import jageocoder_converter.config
@@ -40,6 +40,7 @@ def __prepare_postcoder(directory: PathLike):
     postcoder = PostCoder.get_instance(directory)
     return postcoder
 
+
 def convert(
     prefs: Optional[List[str]] = None,
     use_oaza: bool = True,
@@ -69,9 +70,6 @@ def convert(
         db_dir=db_dir or jageocoder.get_db_dir(mode='w'),
         text_dir=output_dir,
         targets=targets)
-
-    # Prpare PostCode table
-    __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Prepare a converter for the target data set
     converters = [
@@ -143,6 +141,13 @@ def convert(
     # Confirm acceptance of terms of uses.
     for converter in converters:
         converter.confirm()
+
+    # Download data
+    for converter in converters:
+        converter.download_files()
+
+    # Prpare PostCode table
+    __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Converts location reference information from various sources
     # into the text format.

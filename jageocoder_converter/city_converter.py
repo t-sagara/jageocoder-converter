@@ -42,9 +42,9 @@ class CityConverter(BaseConverter):
         ).format(url='https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/')
         return super().confirm(terms)
 
-    def read_pref_file(self):
+    def download_files(self) -> NoReturn:
         """
-        Read 'geoshape-pref-geolod-2021.csv'
+        Download data files.
         """
         input_filepath = os.path.join(
             self.input_dir, 'geoshape-pref-geolod-2021.csv')
@@ -65,6 +65,22 @@ class CityConverter(BaseConverter):
             with open(dst, 'wb') as f:
                 f.write(content)
 
+        input_filepath = os.path.join(
+            self.input_dir, 'geoshape-city.csv')
+        if not os.path.exists(input_filepath):
+            self.download(
+                urls=[
+                    'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
+                ],
+                dirname=self.input_dir
+            )
+
+    def read_pref_file(self):
+        """
+        Read 'geoshape-pref-geolod-2021.csv'
+        """
+        input_filepath = os.path.join(
+            self.input_dir, 'geoshape-pref-geolod-2021.csv')
         with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
             for rows in reader:
@@ -90,14 +106,6 @@ class CityConverter(BaseConverter):
         """
         input_filepath = os.path.join(
             self.input_dir, 'geoshape-city.csv')
-        if not os.path.exists(input_filepath):
-            self.download(
-                urls=[
-                    'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
-                ],
-                dirname=self.input_dir
-            )
-
         jiscodes = {}
         with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)

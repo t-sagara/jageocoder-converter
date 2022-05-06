@@ -48,6 +48,25 @@ class GaikuConverter(BaseConverter):
         )
         return super().confirm(terms)
 
+    def download_files(self):
+        """
+        Download zipped data files from
+        '位置参照情報ダウンロードサービス'
+        https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
+        """
+        urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
+        version = '19.0a'  # PY2020, 令和2年度
+        urls = []
+        for pref_code in self.targets:
+            url = "{0}/{1}/{2}000-{1}.zip".format(
+                urlbase, version, pref_code)
+            urls.append(url)
+
+        self.download(
+            urls=urls,
+            dirname=self.input_dir
+        )
+
     def process_line(self, args, mode='latlon'):
         """
         Parse a line and add an address node.
@@ -231,22 +250,3 @@ class GaikuConverter(BaseConverter):
         with open(self.get_oaza_list_path(), 'w', encoding='utf-8') as f:
             for oaza in oaza_list:
                 print(oaza, file=f)
-
-    def download_files(self):
-        """
-        Download zipped data files from
-        '位置参照情報ダウンロードサービス'
-        https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
-        """
-        urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '19.0a'  # PY2020, 令和2年度
-        urls = []
-        for pref_code in self.targets:
-            url = "{0}/{1}/{2}000-{1}.zip".format(
-                urlbase, version, pref_code)
-            urls.append(url)
-
-        self.download(
-            urls=urls,
-            dirname=self.input_dir
-        )

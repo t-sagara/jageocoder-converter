@@ -240,7 +240,6 @@ class BaseRegistryConverter(BaseConverter):
         then output to 'output/xx_geolonia.txt'.
         """
         self.prepare_jiscode_table()
-        self.download_files()
 
         for pref_code in self.targets:
             # 町字マスター
