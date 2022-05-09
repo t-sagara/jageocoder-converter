@@ -1,7 +1,7 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.2.0rc1'
+__version__ = '1.2.0'
 
 import jageocoder
 import jageocoder_converter.config

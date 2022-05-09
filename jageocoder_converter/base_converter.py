@@ -261,6 +261,18 @@ class BaseConverter(object):
                 if row["全国地方公共団体コード"][0:2] not in self.targets:
                     continue
 
+                names = AzaMaster.get_names_from_csvrow(row)
+                for pos in range(len(names) - 1):
+                    if names[pos][4] not in aza_codes:
+                        subnames = names[0:pos + 1]
+                        record = AzaMaster(**{
+                            "code": names[pos][4],
+                            "names": json.dumps(subnames, ensure_ascii=False),
+                            "names_index": AzaMaster.standardize_aza_name(subnames),
+                        })
+                        aza_codes[record.code] = True
+                        self.manager.session.add(record)
+
                 record = AzaMaster.from_csvrow(row)
                 if record.code not in aza_codes:
                     aza_codes[record.code] = True
