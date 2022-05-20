@@ -16,6 +16,8 @@ class GeoloniaConverter(BaseConverter):
 
     Output 'output/xx_geolonia.txt' for each prefecture.
     """
+    dataset_name = "Geolonia 住所データ"
+    dataset_url = "https://geolonia.github.io/japanese-addresses/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],

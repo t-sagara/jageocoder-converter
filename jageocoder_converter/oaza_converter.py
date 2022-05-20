@@ -18,6 +18,8 @@ class OazaConverter(BaseConverter):
 
     Output 'output/xx_oaza.txt' for each prefecture.
     """
+    dataset_name = "大字・町丁目レベル位置参照情報"
+    dataset_url = "https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],

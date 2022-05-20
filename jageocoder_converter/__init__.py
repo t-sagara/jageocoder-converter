@@ -1,7 +1,7 @@
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.2.0'
+__version__ = '1.3.0dev1'
 
 import jageocoder
 import jageocoder_converter.config
@@ -87,7 +87,7 @@ def convert(
                 manager=manager,
                 input_dir=os.path.join(download_dir, 'oaza'),
                 output_dir=output_dir,
-                priority=9,
+                priority=8,
                 targets=targets,
                 quiet=quiet
             ))
@@ -133,7 +133,7 @@ def convert(
                 input_dir=os.path.join(
                     download_dir, 'base_registry'),
                 output_dir=output_dir,
-                priority=5,
+                priority=9,
                 targets=targets,
                 quiet=quiet
             ))
@@ -156,6 +156,7 @@ def convert(
         converter.convert()
 
     # Sort data, register to the database, then create index
+    manager.write_datasets(converters)
     manager.register()
     manager.create_index()
 

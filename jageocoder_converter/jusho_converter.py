@@ -23,6 +23,8 @@ class JushoConverter(BaseConverter):
 
     Output 'output/xx_jusho.txt' for each prefecture.
     """
+    dataset_name = "電子国土基本図（地名情報）「住居表示住所」"
+    dataset_url = "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],

@@ -21,7 +21,8 @@ class GaikuConverter(BaseConverter):
 
     Output 'output/xx_city.txt' for each prefecture.
     """
-
+    dataset_name = "街区レベル位置参照情報"
+    dataset_url = "https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi"
     re_hugou = re.compile(r'^([^\d]*)(\d*[A-Z]?号?)([^\d]*)')
 
     def __init__(self,

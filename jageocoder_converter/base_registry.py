@@ -24,6 +24,8 @@ class BaseRegistryConverter(BaseConverter):
 
     Output 'output/xx_base_registry.txt' for each prefecture. ?
     """
+    dataset_name = "アドレス・ベース・レジストリ"
+    dataset_url = "https://registry-catalog.registries.digital.go.jp/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],

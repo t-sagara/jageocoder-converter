@@ -18,6 +18,8 @@ class CityConverter(BaseConverter):
 
     Output 'output/xx_city.txt' for each prefecture.
     """
+    dataset_name = "歴史的行政区域データセットβ版地名辞書"
+    dataset_url = "https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],

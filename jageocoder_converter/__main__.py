@@ -33,7 +33,7 @@ Options:
 
 Example:
 
-  python -m {p} convert --no-jusho --db-dir=test 11 12 13 14
+  python -m {p} --no-jusho --db-dir=test 11 12 13 14
 
   will create a dictionary under 'test' directory including
   埼玉県, 千葉県, 東京都, 神奈川県 from 大字・町丁目レベル and

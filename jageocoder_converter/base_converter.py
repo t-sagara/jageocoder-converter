@@ -60,6 +60,9 @@ class BaseConverter(object):
     azacodes = {}
     azacode_from_name = {}
 
+    dataset_name = ""
+    dataset_url = ""
+
     def __init__(
             self, fp: Optional[TextIO] = None,
             manager: Optional["DataManager"] = None,
