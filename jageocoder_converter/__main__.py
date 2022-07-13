@@ -22,7 +22,7 @@ Options:
   --no-geolonia   Don't use Geolonia 住所データ.
   --no-jusho      Don't use 電子国土基本図「住居表示住所」.
   --no-basereg    Don't use JDA Address Base Registry.
-  --db-dir=<dir>        Dictionary creation directory.
+  --db-dir=<dir>        Dictionary creation directory. [default: db]
   --output-dir=<dir>    Parent directory of download-dir and textdata-dir
                         [default: ./]
   --download-dir=<dir>  Directory to download location reference information
