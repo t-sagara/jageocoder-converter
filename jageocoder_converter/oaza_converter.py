@@ -98,13 +98,26 @@ class OazaConverter(BaseConverter):
                     ft = io.TextIOWrapper(
                         f, encoding='CP932', newline='',
                         errors='backslashreplace')
-                    reader = csv.reader(ft)
+                    reader = csv.DictReader(ft)
                     logger.debug('Processing {} in {}...'.format(
                         filename, zipfilepath))
                     try:
-                        for args in reader:
+                        for row in reader:
+                            args = [
+                                row['都道府県コード'],
+                                row['都道府県名'],
+                                row['市区町村コード'],
+                                row['市区町村名'],
+                                row['大字町丁目コード'],
+                                row['大字町丁目名'],
+                                row['緯度'],
+                                row['経度'],
+                                row['原典資料コード'],
+                                row['大字・字・丁目区分コード'],
+                            ]
                             self.process_line(args)
                             pre_args = args
+
                     except UnicodeDecodeError:
                         raise RuntimeError((
                             "変換できない文字が見つかりました。"

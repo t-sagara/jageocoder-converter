@@ -55,8 +55,9 @@ class JushoConverter(BaseConverter):
         """
         Parse a line and add an address node.
         """
-        if len(args) > 9:
-            raise RuntimeError("Invalid line: {}".format(args))
+        if len(args) != 9:
+            logger.warning("Invalid line: {}. (Skipped)".format(args))
+            return
 
         jcode, aza, gaiku, kiso, code, dummy, lon, lat, scale = args
         uppers = self.jiscodes[jcode]
@@ -122,6 +123,8 @@ class JushoConverter(BaseConverter):
                                  '{}???.zip'.format(pref_code)))
                 if len(zipfiles) == 0:
                     self.download_files()
+
+                zipfiles.sort()
 
             with open(output_filepath, 'w', encoding='utf-8') as fout:
                 self.set_fp(fout)

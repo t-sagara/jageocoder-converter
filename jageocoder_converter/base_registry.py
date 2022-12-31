@@ -78,6 +78,11 @@ class BaseRegistryConverter(BaseConverter):
             citycode = row["全国地方公共団体コード"][0:5]
             aza_id = row["町字id"]
             names = self.names_from_code(citycode + aza_id)
+            if names is None:
+                logger.warning("Aza_code '{} {}' is not found. (Skipped)".format(
+                    citycode, aza_id))
+                continue
+
             x, y = row["代表点_経度"], row["代表点_緯度"]
             note = 'aza_id:{}'.format(aza_id)
             if not x or not y:
@@ -191,7 +196,8 @@ class BaseRegistryConverter(BaseConverter):
                         "市区町村名", "政令市区名", "大字・町名", "丁目名",
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 logger.warning(msg)
-                continue  # Skip address without coordinates
+                x, y = 999, 999
+                continue
             else:
                 pos_row = pos_pool[building_code]
                 if crs is None:

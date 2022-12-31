@@ -181,18 +181,23 @@ class DataManager(object):
             including names of address elements, x and y values,
             and notes.
         """
-        priority = None
-        if self.re_float.match(args[-1]) and \
-                self.re_float.match(args[-2]):
-            names = args[0:-2]
-            x = float(args[-2])
-            y = float(args[-1])
-            note = None
-        else:
-            names = args[0:-3]
-            x = float(args[-3])
-            y = float(args[-2])
-            note = str(args[-1])
+        try:
+            if self.re_float.match(args[-1]) and \
+                    self.re_float.match(args[-2]):
+                names = args[0:-2]
+                x = float(args[-2])
+                y = float(args[-1])
+                note = None
+            else:
+                names = args[0:-3]
+                x = float(args[-3])
+                y = float(args[-2])
+                note = str(args[-1])
+
+        except ValueError as e:
+            logger.warning(str(e))
+            logger.warning("while processing '{}'. (Skipped)".format(args))
+            return
 
         if names[-1][0] == '!':
             priority = int(names[-1][1:])

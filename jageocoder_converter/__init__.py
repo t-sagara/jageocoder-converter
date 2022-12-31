@@ -1,3 +1,4 @@
+from logging import getLogger
 import os
 from typing import Optional, List, Union
 
@@ -25,6 +26,7 @@ __all__ = [
 ]
 
 PathLike = Union[str, bytes, os.PathLike]
+logger = getLogger(__name__)
 
 
 def __prepare_postcoder(directory: PathLike):
@@ -143,20 +145,25 @@ def convert(
         converter.confirm()
 
     # Download data
+    logger.info("データファイルをダウンロードします。")
     for converter in converters:
         converter.download_files()
 
     # Prpare PostCode table
+    logger.info("郵便番号テーブルを作成します。")
     __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Converts location reference information from various sources
     # into the text format.
     converters[0].prepare_aza_table()
+    logger.info("データファイルからを変換します。")
     for converter in converters:
+        logger.info("{} で変換処理を実行中".format(converter))
         converter.convert()
 
     # Sort data, register to the database, then create index
     manager.write_datasets(converters)
+    logger.info("データベースファイルを作成します。")
     manager.register()
     manager.create_index()
 
