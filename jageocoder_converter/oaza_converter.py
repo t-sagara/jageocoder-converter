@@ -52,7 +52,7 @@ class OazaConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '14.0b'  # PY2020, 令和2年度
+        version = '15.0b'  # PY2021, 令和3年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(

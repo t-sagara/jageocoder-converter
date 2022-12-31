@@ -191,7 +191,7 @@ class BaseRegistryConverter(BaseConverter):
                         "市区町村名", "政令市区名", "大字・町名", "丁目名",
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 logger.warning(msg)
-                x, y = 999, 999
+                continue  # Skip address without coordinates
             else:
                 pos_row = pos_pool[building_code]
                 if crs is None:

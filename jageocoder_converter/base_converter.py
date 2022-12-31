@@ -384,6 +384,7 @@ class BaseConverter(object):
         for url in urls:
             basename = os.path.basename(url)
             filename = os.path.join(dirname, basename)
+
             if os.path.exists(filename):
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
