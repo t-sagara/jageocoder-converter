@@ -197,7 +197,6 @@ class BaseRegistryConverter(BaseConverter):
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 logger.warning(msg)
                 x, y = 999, 999
-                continue
             else:
                 pos_row = pos_pool[building_code]
                 if crs is None:
