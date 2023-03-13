@@ -1,7 +1,8 @@
+from logging import getLogger
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.2.0'
+__version__ = '1.3.0dev1'
 
 import jageocoder
 import jageocoder_converter.config
@@ -25,6 +26,7 @@ __all__ = [
 ]
 
 PathLike = Union[str, bytes, os.PathLike]
+logger = getLogger(__name__)
 
 
 def __prepare_postcoder(directory: PathLike):
@@ -87,7 +89,7 @@ def convert(
                 manager=manager,
                 input_dir=os.path.join(download_dir, 'oaza'),
                 output_dir=output_dir,
-                priority=9,
+                priority=8,
                 targets=targets,
                 quiet=quiet
             ))
@@ -133,7 +135,7 @@ def convert(
                 input_dir=os.path.join(
                     download_dir, 'base_registry'),
                 output_dir=output_dir,
-                priority=5,
+                priority=9,
                 targets=targets,
                 quiet=quiet
             ))
@@ -143,10 +145,12 @@ def convert(
         converter.confirm()
 
     # Download data
+    logger.info("データファイルをダウンロードします。")
     for converter in converters:
         converter.download_files()
 
     # Prpare PostCode table
+    logger.info("郵便番号テーブルを作成します。")
     __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Converts location reference information from various sources
@@ -154,9 +158,12 @@ def convert(
     converters[0].prepare_aza_table(
         os.path.join(download_dir, 'base_registry'))
     for converter in converters:
+        logger.info("{} で変換処理を実行中".format(converter))
         converter.convert()
 
     # Sort data, register to the database, then create index
+    manager.write_datasets(converters)
+    logger.info("データベースファイルを作成します。")
     manager.register()
     manager.create_index()
 

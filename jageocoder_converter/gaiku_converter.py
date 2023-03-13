@@ -21,7 +21,8 @@ class GaikuConverter(BaseConverter):
 
     Output 'output/xx_city.txt' for each prefecture.
     """
-
+    dataset_name = "街区レベル位置参照情報"
+    dataset_url = "https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi"
     re_hugou = re.compile(r'^([^\d]*)(\d*[A-Z]?号?)([^\d]*)')
 
     def __init__(self,
@@ -55,7 +56,7 @@ class GaikuConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '19.0a'  # PY2020, 令和2年度
+        version = '20.0a'  # PY2021, 令和3年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -180,14 +181,31 @@ class GaikuConverter(BaseConverter):
                     ft = io.TextIOWrapper(
                         f, encoding='CP932', newline='',
                         errors='backslashreplace')
-                    reader = csv.reader(ft)
+                    reader = csv.DictReader(ft)
                     pre_args = None
                     logger.debug('Processing {} in {}...'.format(
                         filename, zipfilepath))
                     try:
-                        for args in reader:
+                        for row in reader:
+                            args = [
+                                row['都道府県名'],
+                                row['市区町村名'],
+                                row['大字・丁目名'],
+                                row['小字・通称名'],
+                                row['街区符号・地番'],
+                                row['座標系番号'],
+                                row['Ｘ座標'],
+                                row['Ｙ座標'],
+                                row['緯度'],
+                                row['経度'],
+                                row['住居表示フラグ'],
+                                row['代表フラグ'],
+                                row['更新前履歴フラグ'],
+                                row['更新後履歴フラグ'],
+                            ]
                             self.process_line(args)
                             pre_args = args
+
                     except UnicodeDecodeError:
                         raise RuntimeError((
                             "変換できない文字が見つかりました。"

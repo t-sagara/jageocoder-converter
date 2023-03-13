@@ -24,6 +24,8 @@ class BaseRegistryConverter(BaseConverter):
 
     Output 'output/xx_base_registry.txt' for each prefecture. ?
     """
+    dataset_name = "アドレス・ベース・レジストリ"
+    dataset_url = "https://registry-catalog.registries.digital.go.jp/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
@@ -76,6 +78,11 @@ class BaseRegistryConverter(BaseConverter):
             citycode = row["全国地方公共団体コード"][0:5]
             aza_id = row["町字id"]
             names = self.names_from_code(citycode + aza_id)
+            if names is None:
+                logger.warning("Aza_code '{} {}' is not found. (Skipped)".format(
+                    citycode, aza_id))
+                continue
+
             x, y = row["代表点_経度"], row["代表点_緯度"]
             note = 'aza_id:{}'.format(aza_id)
             if not x or not y:

@@ -23,6 +23,8 @@ class JushoConverter(BaseConverter):
 
     Output 'output/xx_jusho.txt' for each prefecture.
     """
+    dataset_name = "電子国土基本図（地名情報）「住居表示住所」"
+    dataset_url = "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
@@ -53,8 +55,9 @@ class JushoConverter(BaseConverter):
         """
         Parse a line and add an address node.
         """
-        if len(args) > 9:
-            raise RuntimeError("Invalid line: {}".format(args))
+        if len(args) != 9:
+            logger.warning("Invalid line: {}. (Skipped)".format(args))
+            return
 
         jcode, aza, gaiku, kiso, code, dummy, lon, lat, scale = args
         uppers = self.jiscodes[jcode]
@@ -120,6 +123,8 @@ class JushoConverter(BaseConverter):
                                  '{}???.zip'.format(pref_code)))
                 if len(zipfiles) == 0:
                     self.download_files()
+
+                zipfiles.sort()
 
             with open(output_filepath, 'w', encoding='utf-8') as fout:
                 self.set_fp(fout)

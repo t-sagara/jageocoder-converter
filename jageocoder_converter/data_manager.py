@@ -7,9 +7,11 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
+from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
+
 
 logger = getLogger(__name__)
 
@@ -68,6 +70,20 @@ class DataManager(object):
         self.nodes = {}
         self.cur_id = self.root_node.id
         self.prev_names = []
+
+    def write_datasets(self, converters: list) -> NoReturn:
+        """
+        Write dataset metadata to 'dataset' table.
+        """
+        for converter in converters:
+            dataset = Dataset(
+                id=converter.priority,
+                title=converter.dataset_name,
+                url=converter.dataset_url,
+            )
+            self.session.add(dataset)
+
+        self.session.commit()
 
     def register(self) -> NoReturn:
         """
@@ -182,12 +198,22 @@ class DataManager(object):
             raise e
 
         if names[-1][0] == '!':
+            priority = int(names[-1][1:])
             names = names[0:-1]
 
-        self.add_elements(names, x, y, note)
+        self.add_elements(
+            names=names,
+            x=x, y=y,
+            note=note,
+            priority=priority)
 
-    def add_elements(self, names: List[str], x: float, y: float,
-                     note: Union[str, None]) -> NoReturn:
+    def add_elements(
+            self,
+            names: List[str],
+            x: float,
+            y: float,
+            note: Optional[str],
+            priority: Optional[int]) -> NoReturn:
         """
         Format the address elements into a form that can be registered
         in the database. The parent_id is also calculated and assigned.
@@ -202,6 +228,8 @@ class DataManager(object):
             The Y value (latitude)
         note: str, optional
             Note
+        priority: int, optional
+            Source priority of this data.
         """
 
         def gen_key_from_names(names: List[str]) -> str:
@@ -240,6 +268,7 @@ class DataManager(object):
                 'x': x,
                 'y': y,
                 'level': level,
+                'priority': priority,
                 'note': note if i == len(names) - 1 else '',
                 'parent_id': parent_id,
             }

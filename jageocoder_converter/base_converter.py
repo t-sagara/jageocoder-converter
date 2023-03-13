@@ -61,6 +61,9 @@ class BaseConverter(object):
     azacodes = {}
     azacode_from_name = {}
 
+    dataset_name = ""
+    dataset_url = ""
+
     def __init__(
             self, fp: Optional[TextIO] = None,
             manager: Optional["DataManager"] = None,
@@ -409,6 +412,7 @@ class BaseConverter(object):
         for url in urls:
             basename = os.path.basename(url)
             filename = os.path.join(dirname, basename)
+
             if os.path.exists(filename):
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
