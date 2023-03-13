@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import sys
+import tempfile
 import time
 from typing import TextIO, Union, Optional, NoReturn, List, Tuple
 import zipfile
@@ -209,49 +210,75 @@ class BaseConverter(object):
         zipfilepath: PathLike
             Path to the target zipfile.
         """
-        try:
-            with zipfile.ZipFile(zipfilepath) as z:
-                csvfile = None
-                for filename in z.namelist():
-                    if filename.lower().endswith('.csv'):
-                        csvfile = filename
-                        break
+        with zipfile.ZipFile(zipfilepath) as z:
+            for filename in z.namelist():
+                if filename.lower().endswith('.csv'):
+                    with z.open(filename, mode='r') as f:
+                        ft = io.TextIOWrapper(
+                            f, encoding='utf-8', newline='',
+                            errors='backslashreplace')
+                        logger.debug(
+                            "Opening csvfile {} in zipfile {}.".format(
+                                filename, zipfilepath))
+                        yield ft
 
-                if csvfile is None:
-                    raise RuntimeError("No csv file is found in the zipfile.")
+                elif filename.lower().endswith('.zip'):
+                    with tempfile.NamedTemporaryFile("w+b") as nt:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
 
-                with z.open(csvfile, mode='r') as f:
-                    ft = io.TextIOWrapper(
-                        f, encoding='utf-8', newline='',
-                        errors='backslashreplace')
-                    logger.debug("Opening csvfile {} in zipfile {}.".format(
-                        csvfile, zipfilepath))
-                    yield ft
+                        logger.debug(
+                            "Copied zipfile {} to tmpfile {}.".format(
+                                filename, nt.name))
 
-        finally:
-            logger.debug("Zipfile has been closed.")
+                        with self.open_csv_in_zipfile(nt.name) as ft:
+                            yield ft
 
-    def prepare_aza_table(self):
+    def get_address_all(self, download_dir) -> NoReturn:
         """
-        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
+        Download "address_all.csv.zip" and extract
+        to the specified directory.
         """
-        logger.debug("Creating aza_master table...")
-        data_dir = jageocoder_converter.config.base_download_dir
-        zipfilepath = os.path.join(data_dir, 'mt_town_all.csv.zip')
-        if not os.path.exists(zipfilepath):
+        target = os.path.join(download_dir, "address_all.csv.zip")
+        if not os.path.exists(target):
             api_url = (
-                'https://registry-catalog.registries.digital.go.jp/'
+                'https://catalog.registries.digital.go.jp/rc/'
                 'api/3/action/')
-            dataset_id = 'o1-000000_g2-000003'
+            dataset_id = 'ba000001'
             url = api_url + 'package_show?id={}'.format(dataset_id)
             logger.debug("Getting metadata of package '{}'".format(dataset_id))
             download_url = None
             with urllib.request.urlopen(url) as response:
                 result = json.loads(response.read())
                 metadata = result['result']
-                download_url = self.dataurl_from_metadata(metadata, data_dir)
+                download_url = self.dataurl_from_metadata(
+                    metadata, download_dir)
 
-            self.download(urls=[download_url], dirname=data_dir)
+            self.download(urls=[download_url], dirname=download_dir)
+
+        # Extract "address_all_csv.zip"
+        with zipfile.ZipFile(target) as z:
+            for filename in z.namelist():
+                if not filename.lower().endswith('.zip'):
+                    continue
+
+                target = os.path.join(
+                    download_dir,
+                    os.path.basename(filename))
+                with open(target, mode="w+b") as fout:
+                    with z.open(filename, mode='r') as fin:
+                        fout.write(fin.read())
+
+                    logger.debug("Extracted {}.".format(target))
+
+    def prepare_aza_table(self, download_dir):
+        """
+        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
+        """
+        logger.debug("Creating aza_master table...")
+        zipfilepath = os.path.join(download_dir, 'mt_town_all.csv.zip')
+        if not os.path.exists(zipfilepath):
+            self.get_address_all(download_dir)
 
         with self.open_csv_in_zipfile(zipfilepath) as ft:
             reader = csv.DictReader(ft)
@@ -261,7 +288,12 @@ class BaseConverter(object):
                 if row["全国地方公共団体コード"][0:2] not in self.targets:
                     continue
 
-                names = AzaMaster.get_names_from_csvrow(row)
+                try:
+                    names = AzaMaster.get_names_from_csvrow(row)
+                except KeyError as e:
+                    logger.error(str(e) + "; row='{}'".format(row))
+                    raise e
+
                 for pos in range(len(names) - 1):
                     if names[pos][4] not in aza_codes:
                         subnames = names[0:pos + 1]
@@ -317,15 +349,11 @@ class BaseConverter(object):
             '2000-01-01T00:00')
         modified_at = datetime.datetime.fromisoformat(
             '2000-01-01T00:00')
-        for extra in metadata['extras']:
-            if extra["key"].endswith('dct:issued'):
-                issued_at = datetime.datetime.fromisoformat(
-                    extra["value"])
-            if extra["key"].endswith('dct:modified'):
-                modified_at = datetime.datetime.fromisoformat(
-                    extra["value"])
-            elif extra["key"].endswith('dcat:accessURL'):
-                url = extra["value"]
+        for resource in metadata['resources']:
+            issued_at = resource["created"]
+            modified_at = resource["metadata_modified"]
+            url = resource["url"]
+            if resource["format"].lower().startswith("csv"):
                 basename = os.path.basename(url)
                 filepath = os.path.join(data_dir, basename)
                 if not os.path.exists(filepath) or \
@@ -496,7 +524,7 @@ class BaseConverter(object):
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)
 
-        line += "{},{}".format(x, y)
+        line += "{},{}".format(x or 999, y or 999)
         if note is not None:
             line += ',{}'.format(str(note))
 

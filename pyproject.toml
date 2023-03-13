@@ -1,3 +1,22 @@
+[tool.poetry]
+name = "jageocoder-converter"
+version = "1.4.0dev1"
+description = "Dictionary generator for jageocoder."
+authors = ["\"Takeshi Sagara\" <sagara@info-proto.com>"]
+readme = "README.md"
+packages = [{include = "jageocoder_converter"}]
+
+[tool.poetry.dependencies]
+python = "^3.8.1,<4.0"
+jageocoder = ">=1.4.0"
+jaconv = "^0.3.4"
+docopt = "^0.6.2"
+pyproj = "^3.4.1"
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.0.0"
+pytest = "^7.2.2"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
