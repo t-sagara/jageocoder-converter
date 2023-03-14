@@ -4,6 +4,7 @@ import io
 import json
 from logging import getLogger
 import os
+import tempfile
 import time
 from typing import Union, NoReturn, Optional, List
 import urllib.parse
@@ -25,7 +26,7 @@ class BaseRegistryConverter(BaseConverter):
     Output 'output/xx_base_registry.txt' for each prefecture. ?
     """
     dataset_name = "アドレス・ベース・レジストリ"
-    dataset_url = "https://registry-catalog.registries.digital.go.jp/"
+    dataset_url = "https://catalog.registries.digital.go.jp/rc/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
@@ -251,52 +252,72 @@ class BaseRegistryConverter(BaseConverter):
         for pref_code in self.targets:
             # 町字マスター
             output_filepath = os.path.join(
-                self.output_dir, '{}_basereg_town.txt'.format(pref_code))
+                self.output_dir, f"{pref_code}_basereg_town.txt")
             if os.path.exists(output_filepath):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath = os.path.join(
-                    self.input_dir,
-                    'mt_town_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                        self.open_csv_in_zipfile(input_filepath) as fin:
-                    self.fp = fout
-                    self.process_lines_06(fin)
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_town_pos_all.csv.zip')
+                filename = f"mt_town_pos_pref{pref_code}.csv.zip"
+                with tempfile.NamedTemporaryFile("w+b") as nt:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                            self.open_csv_in_zipfile(nt.name) as fin:
+                        self.fp = fout
+                        self.process_lines_06(fin)
 
             # 住居表示－街区マスター位置参照拡張
             output_filepath = os.path.join(
-                self.output_dir, '{}_basereg_blk.txt'.format(pref_code))
+                self.output_dir, f'{pref_code}_basereg_blk.txt')
             output_filepath_rsdt = os.path.join(
-                self.output_dir, '{}_basereg_rsdt.txt'.format(pref_code))
+                self.output_dir, f'{pref_code}_basereg_rsdt.txt')
             if os.path.exists(output_filepath) and \
                     os.path.exists(output_filepath_rsdt):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath_pos = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_blk_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                        self.open_csv_in_zipfile(input_filepath_pos) as fin:
-                    self.fp = fout
-                    self.process_lines_07(fin)
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_blk_pos_all.csv.zip')
+                filename = f'mt_rsdtdsp_blk_pos_pref{pref_code}.csv.zip'
+                with tempfile.NamedTemporaryFile("w+b") as nt:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                            self.open_csv_in_zipfile(nt.name) as fin:
+                        self.fp = fout
+                        self.process_lines_07(fin)
 
             # 住居表示・住居マスター，位置参照拡張
             if os.path.exists(output_filepath_rsdt):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_rsdt_pref{:s}.csv.zip'.format(pref_code))
-                input_filepath_pos = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_rsdt_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(
-                        output_filepath_rsdt, "w", encoding='utf-8') as fout,\
-                        self.open_csv_in_zipfile(input_filepath) as fin,\
-                        self.open_csv_in_zipfile(
-                            input_filepath_pos) as fin_pos:
-                    self.fp = fout
-                    self.process_lines_0508(fin, fin_pos)
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_rsdt_all.csv.zip')
+                all_pos_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_rsdt_pos_all.csv.zip')
+                filename = f'mt_rsdtdsp_rsdt_pref{pref_code}.csv.zip'
+                filename_pos = f'mt_rsdtdsp_rsdt_pos_pref{pref_code}.csv.zip'
+                with tempfile.NamedTemporaryFile("w+b") as nt, \
+                        tempfile.NamedTemporaryFile("w+b") as nt_pos:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with zipfile.ZipFile(all_pos_zip) as z:
+                        with z.open(filename_pos, mode='r') as f:
+                            nt_pos.write(f.read())
+
+                    with open(
+                            output_filepath_rsdt, "w",
+                            encoding='utf-8') as fout,\
+                            self.open_csv_in_zipfile(nt.name) as fin,\
+                            self.open_csv_in_zipfile(nt_pos.name) as fin_pos:
+                        self.fp = fout
+                        self.process_lines_0508(fin, fin_pos)
 
     def _local_authority_code(self, orig_code: str) -> str:
         """
@@ -319,86 +340,31 @@ class BaseRegistryConverter(BaseConverter):
 
     def download_files(self) -> NoReturn:
         """
-        Download separated data files from
-        'Base Registry Data Catalog Site'
-        https://registry-catalog.registries.digital.go.jp/
-        ex. https://registry-catalog.registries.digital.go.jp/-
-            api/3/action/package_show?id=o1-130001_g2-000006
+        Now all address-base data files are zipped in one file.
+        The file should be already downloaded by 
+        BaseConverter.get_address_all(), but confirm here.
         """
-        api_url = (
-            'https://registry-catalog.registries.digital.go.jp/'
-            'api/3/action/')
-        dataset_id_list = []
-        download_urls = []
-
-        # Add the following dataset of each prefecture
-        # x 0000004: 住居表示・街区マスター
+        # 0000004: 住居表示・街区マスター
         # 0000005: 住居表示・住居マスター
         # 0000006: 町字マスター位置参照拡張
         # 0000007: 住居表示－街区マスター位置参照拡張
         # 0000008: 住居表示－住居マスター位置参照拡張
-        for pref_code in self.targets:
-            input_filepath = os.path.join(
-                self.input_dir,
-                'mt_town_pos_pref{:s}.csv.zip'.format(pref_code))
-            if os.path.exists(input_filepath):
-                continue
-
-            pref_local_code = self._local_authority_code(pref_code + '000')
-            for dataset_code in (5, 6, 7, 8):
-                dataset_id_list.append('o1-{:s}_g2-{:06d}'.format(
-                    pref_local_code, dataset_code))
-
-        for dataset_id in dataset_id_list:
-            url = api_url + 'package_show?id={}'.format(dataset_id)
-            logger.debug(
-                "Getting metadata of package '{}'".format(dataset_id))
-            with urllib.request.urlopen(url) as response:
-                rawdata = response.read()
-                result = json.loads(rawdata)
-                metadata = result['result']
-                download_url = self.dataurl_from_metadata(
-                    metadata, self.input_dir)
-                if download_url is not None:
-                    logger.debug(
-                        "  {} is added to download list.".format(
-                            download_url))
-                    download_urls.append(download_url)
-
-            time.sleep(1)
-
-        """
-        # Download list of "位置参照拡張"
-        count = 0
-        query_url = "{}package_search?q={}&sort=id+asc".format(
-            api_url, urllib.parse.quote(
-                '"位置参照拡張" or "住居表示・住居マスター"'))
-        url = "{}&rows=0".format(query_url)  # Get number of packages
-        logger.debug("Get record count from {}".format(url))
-        with urllib.request.urlopen(url) as response:
-            result = json.loads(response.read())
-            count = result['result']['count']
-            logger.debug("Found {} datasets.".format(count))
-
-        for start in range(0, count, 100):
-            url = "{}&rows=100&start={}".format(
-                query_url, start)  # Get 100 packages
-            logger.debug("Get 100 records from {}".format(url))
-            with urllib.request.urlopen(url) as response:
-                result = json.loads(response.read())
-                for metadata in result['result']['results']:
-                    download_url = self.dataurl_from_metadata(metadata)
-                    if download_url is not None:
-                        logger.debug(
-                            "  {} is added to download list.".format(
-                                download_url))
-                        download_urls.append(download_url)
-
-            time.sleep(1)
-        """
-
-        # Download data files in the list
-        self.download(
-            urls=download_urls,
-            dirname=self.input_dir
+        targets = (
+            'mt_city_all.csv.zip',
+            'mt_pref_all.csv.zip',
+            'mt_rsdtdsp_blk_all.csv.zip',
+            'mt_rsdtdsp_blk_pos_all.csv.zip',
+            'mt_rsdtdsp_rsdt_all.csv.zip',
+            'mt_rsdtdsp_rsdt_pos_all.csv.zip',
+            'mt_town_all.csv.zip',
+            'mt_town_pos_all.csv.zip',
         )
+        not_found_files = []
+        for target in targets:
+            zipfilepath = os.path.join(self.input_dir, target)
+            if not os.path.exists(zipfilepath):
+                not_found_files.append(target)
+
+        # Download data files if the targets are missed.
+        if len(not_found_files) > 0:
+            self.get_address_all(self.input_dir)
