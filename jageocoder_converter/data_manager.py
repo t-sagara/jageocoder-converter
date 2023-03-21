@@ -7,12 +7,18 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
+import capnp
+
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
 
+from jageocoder_converter.capnp_manager import CapnpTable
 
+capnp.remove_import_hook()
+address_node_capnp = capnp.load(
+    os.path.join(os.path.dirname(__file__), 'address_node.capnp'))
 logger = getLogger(__name__)
 
 
@@ -152,6 +158,12 @@ class DataManager(object):
         """
         self.tmp_text.seek(0)
         self.buffer = []
+        self.node_array = []
+        self.capnp_table = CapnpTable(
+            dbdir=self.db_dir, tablename="address_node")
+        self.capnp_table.create(
+            record_type="address_node_capnp.AddressNode",
+            list_type="address_node_capnp.AddressNodeList")
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
@@ -162,6 +174,19 @@ class DataManager(object):
                 AddressNode.__table__.insert(),
                 self.buffer)
             self.session.commit()
+
+        if len(self.node_array) > 0:
+            self.capnp_table.append_records(self.node_array)
+
+        """
+        address_node_list = address_node_capnp.AddressNodeList.new_message()
+        nodes = address_node_list.init('nodes', len(self.node_array))
+        for i, node in enumerate(self.node_array):
+            nodes[i] = node
+
+        with open('addresses.bin', 'w+b') as f:
+            address_node_list.write(f)
+        """
 
     def get_next_id(self):
         """
@@ -274,6 +299,18 @@ class DataManager(object):
             }
 
             self.buffer.append(values)
+
+            self.node_array.append(address_node_capnp.AddressNode.new_message(
+                id=new_id, name=name, nameIndex=name_index,
+                x=x, y=y, level=int(level), priority=priority,
+                note=note or '', parentId=parent_id if parent_id >= 0 else 0,
+                dataset=0, siblingId=0,
+            ))
+            while len(self.node_array) >= self.capnp_table.PAGE_SIZE:
+                self.capnp_table.append_records(self.node_array)
+                self.node_array = self.node_array[
+                    self.capnp_table.PAGE_SIZE:]
+
             self.nodes[key] = new_id
             self.prev_names = names
             parent_id = new_id

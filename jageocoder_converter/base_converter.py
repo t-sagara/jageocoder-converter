@@ -19,6 +19,7 @@ from jageocoder.itaiji import converter as itaiji_converter
 from sqlalchemy import Index
 import urllib.request
 
+from jageocoder_converter.data_manager import DataManager
 import jageocoder_converter.config
 
 Address = Tuple[int, str]  # Address element level and element name
@@ -66,7 +67,7 @@ class BaseConverter(object):
 
     def __init__(
             self, fp: Optional[TextIO] = None,
-            manager: Optional["DataManager"] = None,
+            manager: Optional[DataManager] = None,
             priority: Optional[int] = None,
             targets: Optional[List[str]] = None,
             quiet: Optional[bool] = False,
@@ -303,7 +304,8 @@ class BaseConverter(object):
                         record = AzaMaster(**{
                             "code": names[pos][4],
                             "names": json.dumps(subnames, ensure_ascii=False),
-                            "names_index": AzaMaster.standardize_aza_name(subnames),
+                            "names_index": AzaMaster.standardize_aza_name(
+                                subnames),
                         })
                         aza_codes[record.code] = True
                         self.manager.session.add(record)
