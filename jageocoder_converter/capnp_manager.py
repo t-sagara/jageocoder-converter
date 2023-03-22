@@ -80,20 +80,20 @@ class CapnpTable(CapnpManager):
         self.readers = {}
 
     @cache
-    def _get_table_dir(self) -> Path:
+    def _get_dir(self) -> Path:
         return self.dbdir / self.tablename
 
     def _get_config_path(self) -> Path:
-        return self._get_table_dir() / "config.json"
+        return self._get_dir() / "config.json"
 
     @cache
-    def _get_table_config(self) -> Path:
+    def get_config(self) -> Path:
         with open(self._get_config_path(), "r") as f:
             config = json.load(f)
 
         return config
 
-    def _set_table_config(self, config: dict):
+    def _set_config(self, config: dict):
         with open(self._get_config_path(), "w") as f:
             json.dump(config, f)
 
@@ -112,14 +112,14 @@ class CapnpTable(CapnpManager):
             Path to the page file.
         """
         page_number = math.floor(pos / self.PAGE_SIZE)
-        table_dir = self._get_table_dir()
+        table_dir = self._get_dir()
         return table_dir / f"page_{page_number:03d}.bin"
 
     def _write_page(
             self,
             page: int,
             nodes: list):
-        config = self._get_table_config()
+        config = self.get_config()
         target_nodes = nodes[0:self.PAGE_SIZE]
         list_obj = eval(config["list_type"]).new_message()
         nodes_prop = list_obj.init('nodes', len(target_nodes))
@@ -134,7 +134,7 @@ class CapnpTable(CapnpManager):
             self,
             record_type: str,
             list_type: str):
-        table_dir = self._get_table_dir()
+        table_dir = self._get_dir()
         if table_dir.exists():
             import shutil
             shutil.rmtree(table_dir)  # remove directory with its contents
@@ -162,7 +162,7 @@ class CapnpTable(CapnpManager):
         """
         page_path = self._get_page_path(pos=pos)
         mmap = self.get_page_mmap(page_path)
-        config = self._get_table_config()
+        config = self.get_config()
         with eval(config["list_type"]).from_bytes(
                 buf=mmap, traversal_limit_in_words=2**64-1) as list_obj:
             return list_obj.nodes[pos % self.PAGE_SIZE]
@@ -190,7 +190,7 @@ class CapnpTable(CapnpManager):
         -------
         A record object of the table.
         """
-        config = self._get_table_config()
+        config = self.get_config()
         if limit is None:
             limit = config['length']
 
@@ -231,7 +231,7 @@ class CapnpTable(CapnpManager):
         nodes: list
             The list of nodes.
         """
-        config = self._get_table_config()
+        config = self.get_config()
         new_pos = config["length"]
 
         page_path = self._get_page_path(new_pos)
@@ -259,4 +259,59 @@ class CapnpTable(CapnpManager):
             page += 1
 
         config["length"] += len(nodes)
-        self._set_table_config(config)
+        self._set_config(config)
+
+    def update_records(
+            self,
+            updates: dict) -> bool:
+        """
+        Updates records in a table that has already been output to a file.
+
+        Paramaters
+        ----------
+        updates: dict
+            A dict whose keys are the positions of records to be updated and
+            whose values are the contents to be updated.
+
+            The format of the valuse are a dict of field name/value pairs
+            to be updated.
+
+        Notes
+        -----
+        - This process is very slow and should not be called if possible.
+        """
+        config = self.get_config()
+        current_page = None
+        nodes = None
+        updates = dict(sorted(updates.items()))
+
+        for pos, new_value in updates.items():
+            page = math.floor(pos / self.PAGE_SIZE)
+            if page != current_page:
+                if current_page is not None:
+                    # Write the page to file
+                    self._write_page(
+                        page=current_page,
+                        nodes=nodes
+                    )
+
+                # Read the page into memory
+                page_path = self._get_page_path(pos)
+                with open(page_path, "rb") as f:
+                    current_page = page
+                    list_obj = eval(config["list_type"]).read(
+                        f, traversal_limit_in_words=2**64 - 1)
+                    nodes = [node.as_builder() for node in list_obj.nodes]
+                    # nodes = list_obj.nodes
+
+            for key, value in new_value.items():
+                setattr(
+                    nodes[pos % self.PAGE_SIZE],
+                    key, value)
+
+        if current_page is not None:
+            # Write the page to file
+            self._write_page(
+                page=current_page,
+                nodes=nodes
+            )

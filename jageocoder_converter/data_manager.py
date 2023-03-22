@@ -73,9 +73,6 @@ class DataManager(object):
         self.engine = self.tree.engine
         self.session = self.tree.session
         self.root_node = self.tree.get_root()
-        self.nodes = {}
-        self.cur_id = self.root_node.id
-        self.prev_names = []
 
     def write_datasets(self, converters: list) -> NoReturn:
         """
@@ -100,10 +97,34 @@ class DataManager(object):
           and output them to the temp file,
         - Then, write them to the database.
         """
+        # Initialize Capnp table
+        self.capnp_table = CapnpTable(
+            dbdir=self.db_dir, tablename="address_node")
+        self.capnp_table.create(
+            record_type="address_node_capnp.AddressNode",
+            list_type="address_node_capnp.AddressNodeList")
+
+        # Initialize variables over prefectures
+        self.cur_id = self.root_node.id
+        self.node_array = [
+            address_node_capnp.AddressNode.new_message(
+                id=self.root_node.id,
+                name=self.root_node.name,
+                nameIndex=self.root_node.name,
+                x=999.9, y=999.9, level=0, priority=0,
+                note='', parentId=0, siblingId=0,
+            )
+        ]
+
+        # Register from files
         for prefcode in self.targets:
+            logger.info(f"Converting text files for {prefcode}")
             self.open_tmpfile()
             self.sort_data(prefcode=prefcode)
             self.write_database()
+
+        if len(self.node_array) > 0:
+            self.capnp_table.append_records(self.node_array)
 
         # Create other tables
         self.tree.create_reverse_index()
@@ -156,37 +177,39 @@ class DataManager(object):
         from sorted and formatted text in the temporary file,
         and bulk inserts them to the database.
         """
+        # Initialize variables valid in a prefecture
         self.tmp_text.seek(0)
+        self.nodes = {}
+        self.prev_key = ''
         self.buffer = []
-        self.node_array = []
-        self.capnp_table = CapnpTable(
-            dbdir=self.db_dir, tablename="address_node")
-        self.capnp_table.create(
-            record_type="address_node_capnp.AddressNode",
-            list_type="address_node_capnp.AddressNodeList")
+        self.update_array = {}
+
+        # Read all texts for the prefecture
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
             self.process_line(args)
 
+        # Process data remaining in buffers
         if len(self.buffer) > 0:
             self.session.execute(
                 AddressNode.__table__.insert(),
                 self.buffer)
             self.session.commit()
 
-        if len(self.node_array) > 0:
-            self.capnp_table.append_records(self.node_array)
+        if len(self.nodes) > 0:
+            for key, target_id in self.nodes.items():
+                res = self._set_sibling(target_id, self.cur_id + 1)
+                if res is False:
+                    logger.debug(
+                        "{}[{}] -> EOF[{}]".format(
+                            key, target_id, self.cur_id + 1))
 
-        """
-        address_node_list = address_node_capnp.AddressNodeList.new_message()
-        nodes = address_node_list.init('nodes', len(self.node_array))
-        for i, node in enumerate(self.node_array):
-            nodes[i] = node
+            self.nodes.clear()
 
-        with open('addresses.bin', 'w+b') as f:
-            address_node_list.write(f)
-        """
+        if len(self.update_array) > 0:
+            logger.debug("Updating missed siblings.")
+            self.capnp_table.update_records(self.update_array)
 
     def get_next_id(self):
         """
@@ -267,10 +290,23 @@ class DataManager(object):
             return
 
         # Delete unnecessary cache.
-        if len(names) <= len(self.prev_names):
-            for i in range(len(names) - 1, len(self.prev_names)):
-                key = gen_key_from_names(self.prev_names[0:i+1])
-                del self.nodes[key]
+        if not key.startswith(self.prev_key):
+            for k, target_id in self.nodes.items():
+                if not key.startswith(k):
+                    res = self._set_sibling(target_id, self.cur_id + 1)
+                    if res is False:
+                        logger.debug(
+                            "{}[{}] -> {}[{}]".format(
+                                k, target_id,
+                                key, self.cur_id + 1)
+                        )
+
+                    self.nodes[k] = None
+
+            self.nodes = {
+                k: v
+                for k, v in self.nodes.items() if v is not None
+            }
 
         # Add unregistered address elements to the buffer
         parent_id = self.root_node.id
@@ -303,17 +339,47 @@ class DataManager(object):
             self.node_array.append(address_node_capnp.AddressNode.new_message(
                 id=new_id, name=name, nameIndex=name_index,
                 x=x, y=y, level=int(level), priority=priority,
-                note=note or '', parentId=parent_id if parent_id >= 0 else 0,
-                dataset=0, siblingId=0,
+                note=note or '',
+                parentId=parent_id,
+                siblingId=0,
             ))
+
             while len(self.node_array) >= self.capnp_table.PAGE_SIZE:
                 self.capnp_table.append_records(self.node_array)
                 self.node_array = self.node_array[
                     self.capnp_table.PAGE_SIZE:]
 
             self.nodes[key] = new_id
-            self.prev_names = names
+            self.prev_key = key
             parent_id = new_id
+
+    def _set_sibling(self, target_id: int, sibling_id: int) -> bool:
+        """
+        Set the siblingId of the Capnp record afterwards.
+
+        Parameters
+        ----------
+        target_id: int
+            'id' of the record for which siblingId is to be set.
+        sibling_id: int
+            Value of siblingId to be set for the record.
+
+        Returns
+        -------
+        bool
+            Returns False if the target record has already been output
+            to a file and cannot be changed, or True if it can be changed.
+        """
+        if len(self.node_array) == 0 or self.node_array[0].id > target_id:
+            if target_id not in self.update_array:
+                self.update_array[target_id] = {}
+
+            self.update_array[target_id]["siblingId"] = self.cur_id + 1
+            return False
+        else:
+            pos = target_id - self.node_array[0].id
+            self.node_array[pos].siblingId = sibling_id
+            return True
 
 
 if __name__ == '__main__':

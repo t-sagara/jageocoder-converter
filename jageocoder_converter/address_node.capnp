@@ -10,8 +10,7 @@ struct AddressNode {
     priority @6 :Int8;
     note @7 :Text;
     parentId @8 :UInt32;
-    dataset @9 :UInt8;
-    siblingId @10 :UInt32;
+    siblingId @9 :UInt32;
 }
 
 struct AddressNodeList {
