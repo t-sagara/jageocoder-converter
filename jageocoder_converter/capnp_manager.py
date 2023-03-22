@@ -10,10 +10,6 @@ from typing import Optional
 import capnp
 
 capnp.remove_import_hook()
-
-address_node_capnp = capnp.load(
-    str(Path(__file__).parent / 'address_node.capnp'))
-
 logger = getLogger(__name__)
 
 
@@ -39,6 +35,7 @@ class PageReader(object):
 class CapnpManager(object):
 
     PAGE_SIZE = 500000
+    modules = {}
 
     def __init__(self, dbdir=None):
         if dbdir is None:
@@ -52,6 +49,14 @@ class CapnpManager(object):
         self.dbdir = dbdir
 
         self.page_cache = OrderedDict()
+
+    @classmethod
+    def load_file(cls, path: str, as_module: str = None):
+        if as_module is None:
+            as_module = Path(path).name.replace(".", "_")
+
+        cls.modules[as_module] = capnp.load(f"{path}")
+        return as_module
 
     def get_page_mmap(self, page_path: Path):
         if page_path in self.page_cache:
@@ -74,7 +79,10 @@ class CapnpManager(object):
 
 class CapnpTable(CapnpManager):
 
-    def __init__(self, tablename: str, dbdir=None):
+    def __init__(
+            self,
+            tablename: str,
+            dbdir=None):
         super().__init__(dbdir)
         self.tablename = tablename
         self.readers = {}
@@ -93,9 +101,38 @@ class CapnpTable(CapnpManager):
 
         return config
 
-    def _set_config(self, config: dict):
+    def set_config(self, config: dict):
         with open(self._get_config_path(), "w") as f:
             json.dump(config, f)
+
+    def load_capnp_file(self):
+        config = self.get_config()
+        module_name = config["module_name"]
+        if module_name not in CapnpManager.modules:
+            CapnpManager.load_file(
+                self._get_dir() / config["capnp_file"],
+                module_name)
+
+    @cache
+    def get_record_type(self):
+        config = self.get_config()
+        self.load_capnp_file()
+        record_type = eval(
+            "CapnpManager.modules['" + config["module_name"] + "']."
+            + config["record_type"])
+        return record_type
+
+    @cache
+    def get_list_type(self):
+        config = self.get_config()
+        self.load_capnp_file()
+        list_type = eval("CapnpManager.modules['" +
+                         config["module_name"] + "']." + config["list_type"])
+        return list_type
+
+    def count(self):
+        config = self.get_config()
+        return config["length"]
 
     def _get_page_path(self, pos: int) -> Path:
         """
@@ -119,9 +156,8 @@ class CapnpTable(CapnpManager):
             self,
             page: int,
             nodes: list):
-        config = self.get_config()
         target_nodes = nodes[0:self.PAGE_SIZE]
-        list_obj = eval(config["list_type"]).new_message()
+        list_obj = self.get_list_type().new_message()
         nodes_prop = list_obj.init('nodes', len(target_nodes))
         for i, node in enumerate(target_nodes):
             nodes_prop[i] = node
@@ -132,6 +168,8 @@ class CapnpTable(CapnpManager):
 
     def create(
             self,
+            capnp_file: str,
+            module_name: str,
             record_type: str,
             list_type: str):
         table_dir = self._get_dir()
@@ -140,8 +178,15 @@ class CapnpTable(CapnpManager):
             shutil.rmtree(table_dir)  # remove directory with its contents
 
         table_dir.mkdir()
+        # Copy capnp file
+        copied = table_dir / Path(capnp_file).name
+        with open(capnp_file, "rb") as fin, open(copied, "wb") as fout:
+            fout.write(fin.read())
+
         with open(self._get_config_path(), "w") as f:
             json.dump(obj={
+                "capnp_file": copied.name,
+                "module_name": module_name,
                 "record_type": record_type,
                 "list_type": list_type,
                 "length": 0
@@ -162,8 +207,7 @@ class CapnpTable(CapnpManager):
         """
         page_path = self._get_page_path(pos=pos)
         mmap = self.get_page_mmap(page_path)
-        config = self.get_config()
-        with eval(config["list_type"]).from_bytes(
+        with self.get_list_type().from_bytes(
                 buf=mmap, traversal_limit_in_words=2**64-1) as list_obj:
             return list_obj.nodes[pos % self.PAGE_SIZE]
 
@@ -190,9 +234,8 @@ class CapnpTable(CapnpManager):
         -------
         A record object of the table.
         """
-        config = self.get_config()
         if limit is None:
-            limit = config['length']
+            limit = self.count()
 
         offset = 0 if offset is None else offset
 
@@ -206,7 +249,7 @@ class CapnpTable(CapnpManager):
             current_path = page_path
             f = open(current_path, "rb")
             mm = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
-            with eval(config["list_type"]).from_bytes(
+            with self.get_list_type().from_bytes(
                     buf=mm, traversal_limit_in_words=2**64-1) as list_obj:
 
                 while pos < offset + limit:
@@ -231,15 +274,14 @@ class CapnpTable(CapnpManager):
         nodes: list
             The list of nodes.
         """
-        config = self.get_config()
-        new_pos = config["length"]
+        new_pos = self.count()
 
         page_path = self._get_page_path(new_pos)
         page = math.floor(new_pos / self.PAGE_SIZE)
         pos = page * self.PAGE_SIZE
         if new_pos - pos > 0:
             with open(page_path, "rb") as f:
-                list_obj = eval(config["list_type"]).read(f)
+                list_obj = self.get_list_type().read(f)
 
             self._write_page(
                 page=page,
@@ -258,8 +300,9 @@ class CapnpTable(CapnpManager):
             new_nodes = new_nodes[self.PAGE_SIZE:]
             page += 1
 
+        config = self.get_config()
         config["length"] += len(nodes)
-        self._set_config(config)
+        self.set_config(config)
 
     def update_records(
             self,
@@ -280,7 +323,6 @@ class CapnpTable(CapnpManager):
         -----
         - This process is very slow and should not be called if possible.
         """
-        config = self.get_config()
         current_page = None
         nodes = None
         updates = dict(sorted(updates.items()))
@@ -299,7 +341,7 @@ class CapnpTable(CapnpManager):
                 page_path = self._get_page_path(pos)
                 with open(page_path, "rb") as f:
                     current_page = page
-                    list_obj = eval(config["list_type"]).read(
+                    list_obj = self.get_list_type().read(
                         f, traversal_limit_in_words=2**64 - 1)
                     nodes = [node.as_builder() for node in list_obj.nodes]
                     # nodes = list_obj.nodes

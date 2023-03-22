@@ -7,8 +7,6 @@ import re
 import tempfile
 from typing import Union, NoReturn, Optional, List
 
-import capnp
-
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
@@ -16,9 +14,6 @@ from jageocoder.node import AddressNode
 
 from jageocoder_converter.capnp_manager import CapnpTable
 
-capnp.remove_import_hook()
-address_node_capnp = capnp.load(
-    os.path.join(os.path.dirname(__file__), 'address_node.capnp'))
 logger = getLogger(__name__)
 
 
@@ -101,13 +96,16 @@ class DataManager(object):
         self.capnp_table = CapnpTable(
             dbdir=self.db_dir, tablename="address_node")
         self.capnp_table.create(
-            record_type="address_node_capnp.AddressNode",
-            list_type="address_node_capnp.AddressNodeList")
+            capnp_file=os.path.join(
+                os.path.dirname(__file__), 'address_node.capnp'),
+            module_name="address_node",
+            record_type="AddressNode",
+            list_type="AddressNodeList")
 
         # Initialize variables over prefectures
         self.cur_id = self.root_node.id
         self.node_array = [
-            address_node_capnp.AddressNode.new_message(
+            self.capnp_table.get_record_type().new_message(
                 id=self.root_node.id,
                 name=self.root_node.name,
                 nameIndex=self.root_node.name,
@@ -336,13 +334,14 @@ class DataManager(object):
 
             self.buffer.append(values)
 
-            self.node_array.append(address_node_capnp.AddressNode.new_message(
-                id=new_id, name=name, nameIndex=name_index,
-                x=x, y=y, level=int(level), priority=priority,
-                note=note or '',
-                parentId=parent_id,
-                siblingId=0,
-            ))
+            self.node_array.append(
+                self.capnp_table.get_record_type().new_message(
+                    id=new_id, name=name, nameIndex=name_index,
+                    x=x, y=y, level=int(level), priority=priority,
+                    note=note or '',
+                    parentId=parent_id,
+                    siblingId=0,
+                ))
 
             while len(self.node_array) >= self.capnp_table.PAGE_SIZE:
                 self.capnp_table.append_records(self.node_array)
