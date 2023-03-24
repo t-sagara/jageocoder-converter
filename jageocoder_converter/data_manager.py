@@ -11,8 +11,9 @@ from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
+from PortableTab import CapnpTable
 
-from jageocoder_converter.capnp_manager import CapnpTable
+# from jageocoder_converter.capnp_manager import CapnpTable
 
 logger = getLogger(__name__)
 
@@ -94,25 +95,38 @@ class DataManager(object):
         """
         # Initialize Capnp table
         self.capnp_table = CapnpTable(
-            dbdir=self.db_dir, tablename="address_node")
+            db_dir=self.db_dir, tablename="address_node")
         self.capnp_table.create(
-            capnp_file=os.path.join(
-                os.path.dirname(__file__), 'address_node.capnp'),
-            module_name="address_node",
-            record_type="AddressNode",
-            list_type="AddressNodeList")
+            capnp_schema="""
+            struct AddressNode {
+                id @0 :UInt32;
+                name @1 :Text;
+                nameIndex @2 :Text;
+                x @3 :Float32;
+                y @4 :Float32;
+                level @5 :Int8;
+                priority @6 :Int8;
+                note @7 :Text;
+                parentId @8 :UInt32;
+                siblingId @9 :UInt32;
+            }""",
+            record_type="AddressNode"
+        )
 
         # Initialize variables over prefectures
         self.cur_id = self.root_node.id
-        self.node_array = [
-            self.capnp_table.get_record_type().new_message(
-                id=self.root_node.id,
-                name=self.root_node.name,
-                nameIndex=self.root_node.name,
-                x=999.9, y=999.9, level=0, priority=0,
-                note='', parentId=0, siblingId=0,
-            )
-        ]
+        self.node_array = [{
+            "id": self.root_node.id,
+            "name": self.root_node.name,
+            "nameIndex": self.root_node.name,
+            "x": 999.9,
+            "y": 999.9,
+            "level": 0,
+            "priority": 0,
+            "note": "",
+            "parentId": 0,
+            "siblingId": 0,
+        }]
 
         # Register from files
         for prefcode in self.targets:
@@ -334,14 +348,18 @@ class DataManager(object):
 
             self.buffer.append(values)
 
-            self.node_array.append(
-                self.capnp_table.get_record_type().new_message(
-                    id=new_id, name=name, nameIndex=name_index,
-                    x=x, y=y, level=int(level), priority=priority,
-                    note=note or '',
-                    parentId=parent_id,
-                    siblingId=0,
-                ))
+            self.node_array.append({
+                "id": new_id,
+                "name": name,
+                "nameIndex": name_index,
+                "x": x,
+                "y": y,
+                "level": int(level),
+                "priority": priority,
+                "note": note or "",
+                "parentId": parent_id,
+                "siblingId": 0,
+            })
 
             while len(self.node_array) >= self.capnp_table.PAGE_SIZE:
                 self.capnp_table.append_records(self.node_array)
@@ -369,15 +387,15 @@ class DataManager(object):
             Returns False if the target record has already been output
             to a file and cannot be changed, or True if it can be changed.
         """
-        if len(self.node_array) == 0 or self.node_array[0].id > target_id:
+        if len(self.node_array) == 0 or self.node_array[0]["id"] > target_id:
             if target_id not in self.update_array:
                 self.update_array[target_id] = {}
 
             self.update_array[target_id]["siblingId"] = self.cur_id + 1
             return False
         else:
-            pos = target_id - self.node_array[0].id
-            self.node_array[pos].siblingId = sibling_id
+            pos = target_id - self.node_array[0]["id"]
+            self.node_array[pos]["siblingId"] = sibling_id
             return True
 
 
