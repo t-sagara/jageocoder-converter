@@ -1,0 +1,38 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Build 北海道 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-dq",
+                "--db-dir=db_hokkaido",
+                "01"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Test Capnp records",
+            "type": "python",
+            "request": "launch",
+            "program": "test_scripts/test_capnp_manager.py",
+            "justMyCode": false
+        },
+        {
+            "name": "Test search in 北海道",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--db-dir=./db_hokkaido",
+                "北区北8西5"
+            ]
+        }
+    ]
+}

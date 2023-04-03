@@ -2,11 +2,12 @@ import csv
 import json
 from logging import getLogger
 import os
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 
 from jageocoder.address import AddressLevel
 
 from jageocoder_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 
 logger = getLogger(__name__)
 
@@ -24,10 +25,10 @@ class CityConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
@@ -44,7 +45,7 @@ class CityConverter(BaseConverter):
         ).format(url='https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/')
         return super().confirm(terms)
 
-    def download_files(self) -> NoReturn:
+    def download_files(self) -> None:
         """
         Download data files.
         """

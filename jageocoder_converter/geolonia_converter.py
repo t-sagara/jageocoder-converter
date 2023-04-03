@@ -1,10 +1,11 @@
 import csv
 from logging import getLogger
 import os
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 
 from jageocoder.address import AddressLevel
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 
 logger = getLogger(__name__)
 
@@ -22,10 +23,10 @@ class GeoloniaConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir

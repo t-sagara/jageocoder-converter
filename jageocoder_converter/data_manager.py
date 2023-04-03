@@ -5,7 +5,7 @@ from logging import getLogger
 import os
 import re
 import tempfile
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
@@ -40,7 +40,7 @@ class DataManager(object):
     def __init__(self,
                  db_dir: Union[str, bytes, os.PathLike],
                  text_dir: Union[str, bytes, os.PathLike],
-                 targets: Optional[List[str]] = None) -> NoReturn:
+                 targets: Optional[List[str]] = None) -> None:
         """
         Initialize the manager.
 
@@ -70,7 +70,7 @@ class DataManager(object):
         self.session = self.tree.session
         self.root_node = self.tree.get_root()
 
-    def write_datasets(self, converters: list) -> NoReturn:
+    def write_datasets(self, converters: list) -> None:
         """
         Write dataset metadata to 'dataset' table.
         """
@@ -84,7 +84,7 @@ class DataManager(object):
 
         self.session.commit()
 
-    def register(self) -> NoReturn:
+    def register(self) -> None:
         """
         Process prefectures in the target list.
 
@@ -94,9 +94,9 @@ class DataManager(object):
         - Then, write them to the database.
         """
         # Initialize Capnp table
-        self.capnp_table = CapnpTable(
+        self.address_nodes = CapnpTable(
             db_dir=self.db_dir, tablename="address_node")
-        self.capnp_table.create(
+        self.address_nodes.create(
             capnp_schema="""
             struct AddressNode {
                 id @0 :UInt32;
@@ -136,20 +136,20 @@ class DataManager(object):
             self.write_database()
 
         if len(self.node_array) > 0:
-            self.capnp_table.append_records(self.node_array)
+            self.address_nodes.append_records(self.node_array)
 
         # Create other tables
         self.tree.create_reverse_index()
         self.tree.create_note_index_table()
 
-    def create_index(self) -> NoReturn:
+    def create_index(self) -> None:
         """
         Create relational index and trie index.
         """
         self.tree.create_tree_index()
         # self.tree.create_trie_index()
 
-    def open_tmpfile(self) -> NoReturn:
+    def open_tmpfile(self) -> None:
         """
         Create a temporary file to store the sorted text.
         If it has already been created, delete it and create a new one.
@@ -159,7 +159,7 @@ class DataManager(object):
 
         self.tmp_text = tempfile.TemporaryFile(mode='w+b')
 
-    def sort_data(self, prefcode: str) -> NoReturn:
+    def sort_data(self, prefcode: str) -> None:
         """
         Read records from text files that matches the specified
         prefecture code, sort the records,
@@ -183,7 +183,7 @@ class DataManager(object):
         for record in records:
             self.tmp_text.write(record)
 
-    def write_database(self) -> NoReturn:
+    def write_database(self) -> None:
         """
         Generates records that can be output to a database
         from sorted and formatted text in the temporary file,
@@ -221,7 +221,7 @@ class DataManager(object):
 
         if len(self.update_array) > 0:
             logger.debug("Updating missed siblings.")
-            self.capnp_table.update_records(self.update_array)
+            self.address_nodes.update_records(self.update_array)
 
     def get_next_id(self):
         """
@@ -230,7 +230,7 @@ class DataManager(object):
         self.cur_id += 1
         return self.cur_id
 
-    def process_line(self, args: List[str]) -> NoReturn:
+    def process_line(self, args: List[str]) -> None:
         """
         Processes a single line of data.
 
@@ -273,7 +273,7 @@ class DataManager(object):
             x: float,
             y: float,
             note: Optional[str],
-            priority: Optional[int]) -> NoReturn:
+            priority: Optional[int]) -> None:
         """
         Format the address elements into a form that can be registered
         in the database. The parent_id is also calculated and assigned.
@@ -361,10 +361,10 @@ class DataManager(object):
                 "siblingId": 0,
             })
 
-            while len(self.node_array) >= self.capnp_table.PAGE_SIZE:
-                self.capnp_table.append_records(self.node_array)
+            while len(self.node_array) >= self.address_nodes.PAGE_SIZE:
+                self.address_nodes.append_records(self.node_array)
                 self.node_array = self.node_array[
-                    self.capnp_table.PAGE_SIZE:]
+                    self.address_nodes.PAGE_SIZE:]
 
             self.nodes[key] = new_id
             self.prev_key = key

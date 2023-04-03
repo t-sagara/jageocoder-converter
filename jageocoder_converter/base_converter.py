@@ -10,7 +10,7 @@ import re
 import sys
 import tempfile
 import time
-from typing import TextIO, Union, Optional, NoReturn, List, Tuple
+from typing import TextIO, Union, Optional, List, Tuple
 import zipfile
 
 from jageocoder.address import AddressLevel
@@ -238,7 +238,7 @@ class BaseConverter(object):
                         with self.open_csv_in_zipfile(nt.name) as ft:
                             yield ft
 
-    def get_address_all(self, download_dir) -> NoReturn:
+    def get_address_all(self, download_dir) -> None:
         """
         Download "address_all.csv.zip" and extract
         to the specified directory.
@@ -397,7 +397,7 @@ class BaseConverter(object):
         return True
 
     def download(self, urls: List[str],
-                 dirname: Union[str, bytes, os.PathLike]) -> NoReturn:
+                 dirname: Union[str, bytes, os.PathLike]) -> None:
         """
         Download files from web specified by urls and save them under dirname.
 
@@ -426,7 +426,7 @@ class BaseConverter(object):
             local_filename, headers = urllib.request.urlretrieve(url, filename)
             time.sleep(5)
 
-    def set_fp(self, fp: Union[TextIO, None]) -> NoReturn:
+    def set_fp(self, fp: Union[TextIO, None]) -> None:
         """
         Set (or change if already set) the output stream.
 
@@ -505,7 +505,7 @@ class BaseConverter(object):
         return None
 
     def print_line(self, names: List[Address], x: float, y: float,
-                   note: Optional[str] = None) -> NoReturn:
+                   note: Optional[str] = None) -> None:
         """
         Outputs a single line of information.
         If the instance variable priority is set,
@@ -538,7 +538,7 @@ class BaseConverter(object):
 
     def print_line_with_postcode(
             self, names: List[Address], x: float, y: float,
-            note: Optional[str] = None) -> NoReturn:
+            note: Optional[str] = None) -> None:
         """
         Outputs a single line of information with postcode.
 
