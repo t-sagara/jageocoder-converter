@@ -10,10 +10,7 @@ from typing import Union, Optional, List
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
-from jageocoder.node import AddressNode
-from PortableTab import CapnpTable
-
-# from jageocoder_converter.capnp_manager import CapnpTable
+from jageocoder.node import AddressNode, AddressNodeTable
 
 logger = getLogger(__name__)
 
@@ -66,23 +63,24 @@ class DataManager(object):
 
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
-        self.engine = self.tree.engine
-        self.session = self.tree.session
-        self.root_node = self.tree.get_root()
+        # self.engine = self.tree.engine
+        # self.session = self.tree.session
 
     def write_datasets(self, converters: list) -> None:
         """
         Write dataset metadata to 'dataset' table.
         """
+        datasets = Dataset(db_dir=self.db_dir)
+        datasets.create()
+        records = []
         for converter in converters:
-            dataset = Dataset(
-                id=converter.priority,
-                title=converter.dataset_name,
-                url=converter.dataset_url,
-            )
-            self.session.add(dataset)
+            records.append({
+                "id": converter.priority,
+                "title": converter.dataset_name,
+                "url": converter.dataset_url,
+            })
 
-        self.session.commit()
+        datasets.append_records(records)
 
     def register(self) -> None:
         """
@@ -93,39 +91,24 @@ class DataManager(object):
           and output them to the temp file,
         - Then, write them to the database.
         """
-        # Initialize Capnp table
-        self.address_nodes = CapnpTable(
-            db_dir=self.db_dir, tablename="address_node")
-        self.address_nodes.create(
-            capnp_schema="""
-            struct AddressNode {
-                id @0 :UInt32;
-                name @1 :Text;
-                nameIndex @2 :Text;
-                x @3 :Float32;
-                y @4 :Float32;
-                level @5 :Int8;
-                priority @6 :Int8;
-                note @7 :Text;
-                parentId @8 :UInt32;
-                siblingId @9 :UInt32;
-            }""",
-            record_type="AddressNode"
-        )
+        # Initialize AddressNode table
+        self.address_nodes = AddressNodeTable(db_dir=self.db_dir)
+        self.address_nodes.create()
 
         # Initialize variables over prefectures
+        self.root_node = AddressNode.root()
         self.cur_id = self.root_node.id
         self.node_array = [{
             "id": self.root_node.id,
             "name": self.root_node.name,
             "nameIndex": self.root_node.name,
-            "x": 999.9,
-            "y": 999.9,
-            "level": 0,
-            "priority": 0,
-            "note": "",
-            "parentId": 0,
-            "siblingId": 0,
+            "x": self.root_node.x,
+            "y": self.root_node.y,
+            "level": self.root_node.level,
+            "priority": self.root_node.priority,
+            "note": self.root_node.note,
+            "parentId": self.root_node.parent_id,
+            "siblingId": self.root_node.parent_id,
         }]
 
         # Register from files
@@ -139,15 +122,16 @@ class DataManager(object):
             self.address_nodes.append_records(self.node_array)
 
         # Create other tables
-        self.tree.create_reverse_index()
-        self.tree.create_note_index_table()
+        # ToDo: Implement without sqlite3
+        # self.tree.create_reverse_index()
+        # self.tree.create_note_index_table()
 
     def create_index(self) -> None:
         """
         Create relational index and trie index.
         """
-        self.tree.create_tree_index()
-        # self.tree.create_trie_index()
+        # self.tree.create_tree_index()
+        self.tree.create_trie_index()
 
     def open_tmpfile(self) -> None:
         """
@@ -203,11 +187,11 @@ class DataManager(object):
             self.process_line(args)
 
         # Process data remaining in buffers
-        if len(self.buffer) > 0:
-            self.session.execute(
-                AddressNode.__table__.insert(),
-                self.buffer)
-            self.session.commit()
+        # if len(self.buffer) > 0:
+        #     self.session.execute(
+        #         AddressNode.__table__.insert(),
+        #         self.buffer)
+        #     self.session.commit()
 
         if len(self.nodes) > 0:
             for key, target_id in self.nodes.items():

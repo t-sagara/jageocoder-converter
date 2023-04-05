@@ -16,7 +16,6 @@ import zipfile
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
-from sqlalchemy import Index
 import urllib.request
 
 from jageocoder_converter.data_manager import DataManager
@@ -284,6 +283,10 @@ class BaseConverter(object):
         if not os.path.exists(zipfilepath):
             self.get_address_all(download_dir)
 
+        # Initialize Capnp table
+        self.aza_master = AzaMaster(db_dir=self.manager.db_dir)
+        self.aza_master.create()
+
         with self.open_csv_in_zipfile(zipfilepath) as ft:
             reader = csv.DictReader(ft)
             n = 0
@@ -292,39 +295,41 @@ class BaseConverter(object):
                 if row["全国地方公共団体コード"][0:2] not in self.targets:
                     continue
 
-                try:
-                    names = AzaMaster.get_names_from_csvrow(row)
-                except KeyError as e:
-                    logger.error(str(e) + "; row='{}'".format(row))
-                    raise e
+                # try:
+                #     names = AzaMaster.get_names_from_csvrow(row)
+                # except KeyError as e:
+                #     logger.error(str(e) + "; row='{}'".format(row))
+                #     raise e
 
-                for pos in range(len(names) - 1):
-                    if names[pos][4] not in aza_codes:
-                        subnames = names[0:pos + 1]
-                        record = AzaMaster(**{
-                            "code": names[pos][4],
-                            "names": json.dumps(subnames, ensure_ascii=False),
-                            "names_index": AzaMaster.standardize_aza_name(
-                                subnames),
-                        })
-                        aza_codes[record.code] = True
-                        self.manager.session.add(record)
+                # for pos in range(len(names) - 1):
+                #     if names[pos][4] not in aza_codes:
+                #         subnames = names[0:pos + 1]
+                #         record = AzaMaster(**{
+                #             "code": names[pos][4],
+                #             "names": json.dumps(subnames, ensure_ascii=False),
+                #             "names_index": AzaMaster.standardize_aza_name(
+                #                 subnames),
+                #         })
+                #         aza_codes[record.code] = True
+                #         self.manager.session.add(record)
 
-                record = AzaMaster.from_csvrow(row)
-                if record.code not in aza_codes:
-                    aza_codes[record.code] = True
-                    self.manager.session.add(record)
+                record = self.aza_master.from_csvrow(row)
+                if record["code"] not in aza_codes:
+                    aza_codes[record["code"]] = record
 
                 n += 1
                 if n % 10000 == 0:
                     logger.debug("  read {} records.".format(n))
-                    self.manager.session.commit()
+                    # self.manager.session.commit()
 
-        self.manager.session.commit()
-        logger.debug("  Creating index on aza_master.names_index...")
-        aza_master_names_index = Index(
-            'ix_aza_master_names_index', AzaMaster.names_index)
-        aza_master_names_index.create(self.manager.engine)
+            records = dict(sorted(aza_codes.items()))
+            self.aza_master.append_records(records.values())
+
+        # self.manager.session.commit()
+        # logger.debug("  Creating index on aza_master.names_index...")
+        # aza_master_names_index = Index(
+        #     'ix_aza_master_names_index', AzaMaster.names_index)
+        # aza_master_names_index.create(self.manager.engine)
 
     def dataurl_from_metadata(
             self,

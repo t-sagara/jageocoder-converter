@@ -10,11 +10,11 @@
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
-                "-dq",
+                "-q",
                 "--db-dir=db_hokkaido",
                 "01"
             ],
-            "justMyCode": true
+            "justMyCode": false
         },
         {
             "name": "Test Capnp records",
