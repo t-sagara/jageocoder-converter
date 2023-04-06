@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Build dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-dq",
+                "--db-dir=db_jusho"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 北海道 dictionary",
             "type": "python",
             "request": "launch",
@@ -13,6 +24,32 @@
                 "-q",
                 "--db-dir=db_hokkaido",
                 "01"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 福島県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_fukushima",
+                "07"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 大阪府/街区レベル dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_osaka",
+                "--no-jusho",
+                "--no-basereg",
+                "27"
             ],
             "justMyCode": false
         },

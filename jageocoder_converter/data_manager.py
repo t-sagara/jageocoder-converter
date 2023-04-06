@@ -288,7 +288,8 @@ class DataManager(object):
         # Delete unnecessary cache.
         if not key.startswith(self.prev_key):
             for k, target_id in self.nodes.items():
-                if not key.startswith(k):
+                if not key.startswith(k) or \
+                        (len(key) > len(k) and key[len(k)] != ','):
                     res = self._set_sibling(target_id, self.cur_id + 1)
                     if res is False:
                         logger.debug(

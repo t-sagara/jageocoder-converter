@@ -136,7 +136,8 @@ class GaikuConverter(BaseConverter):
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
         if args[10] == '1':
             # 住居表示地域
-            if hugou[-1] >= '0' and hugou[-1] <= '9':
+            if hugou[-1] in '0123456789ABCabc':
+                # 大阪市中央区上町の A番-C番 対応
                 names.append([AddressLevel.BLOCK, hugou + '番'])
             else:
                 logger.debug("Non-numeric hugou '{}' in {}".format(
