@@ -1,14 +1,11 @@
-from contextlib import contextmanager
 import csv
 import datetime
 from functools import lru_cache
-import io
 import json
 import logging
 import os
 import re
 import sys
-import tempfile
 import time
 from typing import TextIO, Union, Optional, List, Tuple
 import zipfile
@@ -23,7 +20,6 @@ import jageocoder_converter.config
 
 Address = Tuple[int, str]  # Address element level and element name
 logger = logging.getLogger(__name__)
-azanames2code = {}
 
 
 class BaseConverter(object):
@@ -204,40 +200,6 @@ class BaseConverter(object):
                 print(json.dumps(
                     {jiscode: args[0]}, ensure_ascii=False), file=f)
 
-    @contextmanager
-    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
-        """
-        Get file pointer to the first csv file in the zipfile.
-
-        Parameters
-        ----------
-        zipfilepath: PathLike
-            Path to the target zipfile.
-        """
-        with zipfile.ZipFile(zipfilepath) as z:
-            for filename in z.namelist():
-                if filename.lower().endswith('.csv'):
-                    with z.open(filename, mode='r') as f:
-                        ft = io.TextIOWrapper(
-                            f, encoding='utf-8', newline='',
-                            errors='backslashreplace')
-                        logger.debug(
-                            "Opening csvfile {} in zipfile {}.".format(
-                                filename, zipfilepath))
-                        yield ft
-
-                elif filename.lower().endswith('.zip'):
-                    with tempfile.NamedTemporaryFile("w+b") as nt:
-                        with z.open(filename, mode='r') as f:
-                            nt.write(f.read())
-
-                        logger.debug(
-                            "Copied zipfile {} to tmpfile {}.".format(
-                                filename, nt.name))
-
-                        with self.open_csv_in_zipfile(nt.name) as ft:
-                            yield ft
-
     def get_address_all(self, download_dir) -> None:
         """
         Download "address_all.csv.zip" and extract
@@ -274,47 +236,6 @@ class BaseConverter(object):
                         fout.write(fin.read())
 
                     logger.debug("Extracted {}.".format(target))
-
-    def prepare_aza_table(self, download_dir):
-        """
-        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
-        """
-        logger.debug("Creating aza_master table...")
-        zipfilepath = os.path.join(download_dir, 'mt_town_all.csv.zip')
-        if not os.path.exists(zipfilepath):
-            self.get_address_all(download_dir)
-
-        # Initialize Capnp table
-        self.aza_master = AzaMaster(db_dir=self.manager.db_dir)
-        self.aza_master.create()
-
-        records = {}
-        with self.open_csv_in_zipfile(zipfilepath) as ft:
-            reader = csv.DictReader(ft)
-            n = 0
-            aza_codes = {}
-            for row in reader:
-                if row["全国地方公共団体コード"][0:2] not in self.targets:
-                    continue
-
-                record = self.aza_master.from_csvrow(row)
-                if record["code"] not in aza_codes:
-                    aza_codes[record["code"]] = record
-
-                n += 1
-                if n % 10000 == 0:
-                    logger.debug("  read {} records.".format(n))
-                    # self.manager.session.commit()
-
-            records = dict(sorted(aza_codes.items()))
-            self.aza_master.append_records(records.values())
-
-        global azanames2code
-        azanames2code = {}
-        for r in records.values():
-            names = AzaMaster.standardize_aza_name(
-                json.loads(r["names"]))
-            azanames2code[names] = r["code"]
 
     def dataurl_from_metadata(
             self,
@@ -466,12 +387,13 @@ class BaseConverter(object):
         str
             azacode or None.
         """
-        from jageocoder_converter.base_converter import azanames2code
         key = AzaMaster.standardize_aza_name(elements)
-        if key in azanames2code:
-            return azanames2code[key]
+        cands = self.manager.aza_master.search_records_on(
+            "names", key)
+        if len(cands) == 0:
+            return None
 
-        return None
+        return cands[0].code
 
     def names_from_code(
             self,
@@ -489,14 +411,12 @@ class BaseConverter(object):
         List[str], None
             List of address elements if the code exists, or None.
         """
-        if not hasattr(self, "aza_master"):
-            self.aza_master = AzaMaster(db_dir=self.manager.db_dir)
+        cands = self.manager.aza_master.search_records_on(
+            "code", code)
+        if len(cands) == 0:
+            return None
 
-        record = self.aza_master.search_by_code(code)
-        if record is not None:
-            return json.loads(record.names)
-
-        return None
+        return json.loads(cands[0].names)
 
     def print_line(self, names: List[Address], x: float, y: float,
                    note: Optional[str] = None) -> None:

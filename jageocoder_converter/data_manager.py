@@ -1,12 +1,16 @@
+from contextlib import contextmanager
 import csv
 import glob
 import io
+import json
 from logging import getLogger
 import os
 import re
 import tempfile
 from typing import Union, Optional, List
+import zipfile
 
+from jageocoder.aza_master import AzaMaster
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
@@ -63,6 +67,7 @@ class DataManager(object):
 
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
+        self.aza_master = AzaMaster(db_dir=self.db_dir)
         # self.engine = self.tree.engine
         # self.session = self.tree.session
 
@@ -382,6 +387,83 @@ class DataManager(object):
             pos = target_id - self.node_array[0]["id"]
             self.node_array[pos]["siblingId"] = sibling_id
             return True
+
+    def prepare_aza_table(self, download_dir):
+        """
+        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
+        """
+        logger.debug("Creating aza_master table...")
+        zipfilepath = os.path.join(download_dir, 'mt_town_all.csv.zip')
+        if not os.path.exists(zipfilepath):
+            self.get_address_all(download_dir)
+
+        # Initialize Capnp table
+        self.aza_master = AzaMaster(db_dir=self.db_dir)
+        self.aza_master.create()
+
+        records = {}
+        with self.open_csv_in_zipfile(zipfilepath) as ft:
+            reader = csv.DictReader(ft)
+            n = 0
+            aza_codes = {}
+            for row in reader:
+                if row["全国地方公共団体コード"][0:2] not in self.targets:
+                    continue
+
+                record = self.aza_master.from_csvrow(row)
+                if record["code"] not in aza_codes:
+                    aza_codes[record["code"]] = record
+
+                n += 1
+                if n % 10000 == 0:
+                    logger.debug("  read {} records.".format(n))
+                    # self.manager.session.commit()
+
+            records = dict(sorted(aza_codes.items()))
+            self.aza_master.append_records(records.values())
+
+        # Create TRIE index
+        self.aza_master.create_trie_on(attr="code")
+        self.aza_master.create_trie_on(
+            attr="names",
+            func=lambda x: AzaMaster.standardize_aza_name(
+                json.loads(x)
+            )
+        )
+
+    @contextmanager
+    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
+        """
+        Get file pointer to the first csv file in the zipfile.
+
+        Parameters
+        ----------
+        zipfilepath: PathLike
+            Path to the target zipfile.
+        """
+        with zipfile.ZipFile(zipfilepath) as z:
+            for filename in z.namelist():
+                if filename.lower().endswith('.csv'):
+                    with z.open(filename, mode='r') as f:
+                        ft = io.TextIOWrapper(
+                            f, encoding='utf-8', newline='',
+                            errors='backslashreplace')
+                        logger.debug(
+                            "Opening csvfile {} in zipfile {}.".format(
+                                filename, zipfilepath))
+                        yield ft
+
+                elif filename.lower().endswith('.zip'):
+                    with tempfile.NamedTemporaryFile("w+b") as nt:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                        logger.debug(
+                            "Copied zipfile {} to tmpfile {}.".format(
+                                filename, nt.name))
+
+                        with self.open_csv_in_zipfile(nt.name) as ft:
+                            yield ft
 
 
 if __name__ == '__main__':

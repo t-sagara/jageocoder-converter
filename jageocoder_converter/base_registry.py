@@ -188,12 +188,12 @@ class BaseRegistryConverter(BaseConverter):
                     max_code_in_pool = pos_building_code
 
             if building_code not in pos_pool:
-                msg = "No location data for rsdt '{}'".format(",".join(
+                msg = "No coodinates for rsdt '{}'".format(",".join(
                     [row[k] for k in (
                         "市区町村名", "政令市区名", "大字・町名", "丁目名",
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 logger.warning(msg)
-                x, y = 999, 999
+                x, y = 999.9, 999.9
             else:
                 pos_row = pos_pool[building_code]
                 if crs is None:
@@ -261,7 +261,7 @@ class BaseRegistryConverter(BaseConverter):
                             nt.write(f.read())
 
                     with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                            self.open_csv_in_zipfile(nt.name) as fin:
+                            self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
                         self.process_lines_06(fin)
 
@@ -283,7 +283,7 @@ class BaseRegistryConverter(BaseConverter):
                             nt.write(f.read())
 
                     with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                            self.open_csv_in_zipfile(nt.name) as fin:
+                            self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
                         self.process_lines_07(fin)
 
@@ -310,8 +310,8 @@ class BaseRegistryConverter(BaseConverter):
                     with open(
                             output_filepath_rsdt, "w",
                             encoding='utf-8') as fout,\
-                            self.open_csv_in_zipfile(nt.name) as fin,\
-                            self.open_csv_in_zipfile(nt_pos.name) as fin_pos:
+                            self.manager.open_csv_in_zipfile(nt.name) as fin,\
+                            self.manager.open_csv_in_zipfile(nt_pos.name) as fin_pos:
                         self.fp = fout
                         self.process_lines_0508(fin, fin_pos)
 

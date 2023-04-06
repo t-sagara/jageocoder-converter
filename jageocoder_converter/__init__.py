@@ -155,7 +155,7 @@ def convert(
 
     # Converts location reference information from various sources
     # into the text format.
-    converters[0].prepare_aza_table(
+    manager.prepare_aza_table(
         os.path.join(download_dir, 'base_registry'))
     for converter in converters:
         logger.info("{} で変換処理を実行中".format(converter))
