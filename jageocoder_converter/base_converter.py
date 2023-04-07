@@ -436,7 +436,15 @@ class BaseConverter(object):
         note: str, optional
             Notes (used to add codes, identifiers, etc.)
         """
-        line = ''
+        keys = []
+        for name in names:
+            if name[1] == '':
+                continue
+
+            keys.append(itaiji_converter.standardize(name[1]))
+
+        line = " ".join(keys) + "\t"
+
         for name in names:
             if name[1] != '':
                 line += '{:s};{:d},'.format(name[1], name[0])

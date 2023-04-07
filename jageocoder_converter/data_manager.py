@@ -127,6 +127,7 @@ class DataManager(object):
             self.address_nodes.append_records(self.node_array)
 
         # Create other tables
+        logger.info("Creating index.")
         self.tree.create_note_index_table()
 
     def create_index(self) -> None:
@@ -176,6 +177,7 @@ class DataManager(object):
         from sorted and formatted text in the temporary file,
         and bulk inserts them to the database.
         """
+        logger.info('Building nodes tables.')
         # Initialize variables valid in a prefecture
         self.tmp_text.seek(0)
         self.nodes = {}
@@ -187,6 +189,8 @@ class DataManager(object):
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
+            _, arg0 = args[0].split("\t")
+            args[0] = arg0
             self.process_line(args)
 
         # Process data remaining in buffers
@@ -217,13 +221,16 @@ class DataManager(object):
         self.cur_id += 1
         return self.cur_id
 
-    def process_line(self, args: List[str]) -> None:
+    def process_line(
+        self,
+        args: List[str],
+    ) -> None:
         """
         Processes a single line of data.
 
         Parameters
         ----------
-        args: [str]
+        args: List[str]
             Arguments in a line of formatted text data,
             including names of address elements, x and y values,
             and notes.
