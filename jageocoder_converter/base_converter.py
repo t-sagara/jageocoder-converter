@@ -439,7 +439,7 @@ class BaseConverter(object):
         line = ''
         for name in names:
             if name[1] != '':
-                line += '{:d};{:s},'.format(*name)
+                line += '{:s};{:d},'.format(name[1], name[0])
 
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)
@@ -576,7 +576,9 @@ class BaseConverter(object):
         if not ignore_aza:
             m = re.match(r'^(.+?[^文大])((字|小字).*)$', name)
             if m:
-                return [[AddressLevel.OAZA, m.group(1)], [6, m.group(2)]]
+                return [
+                    [AddressLevel.OAZA, m.group(1)],
+                    [AddressLevel.AZA, m.group(2)]]
 
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西|南|北)?)$', name)

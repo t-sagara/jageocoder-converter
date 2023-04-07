@@ -40,6 +40,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 長野県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_nagano",
+                "20"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 大阪府/街区レベル dictionary",
             "type": "python",
             "request": "launch",
