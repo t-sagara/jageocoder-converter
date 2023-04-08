@@ -83,62 +83,82 @@ def convert(
             targets=targets,
             quiet=quiet)
     ]
+
+    converter = OazaConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'oaza'),
+        output_dir=output_dir,
+        priority=8,
+        targets=targets,
+        quiet=quiet
+    )
     if use_oaza:
-        converters.append(
-            OazaConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'oaza'),
-                output_dir=output_dir,
-                priority=8,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('oaza')
+        converters.append(converter)
+    else:
+        converter.escape_texts('oaza')
 
+    converter = GaikuConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'gaiku'),
+        output_dir=output_dir,
+        priority=3,
+        targets=targets,
+        quiet=quiet
+    )
     if use_gaiku:
-        converters.append(
-            GaikuConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'gaiku'),
-                output_dir=output_dir,
-                priority=3,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('gaiku')
+        converters.append(converter)
+    else:
+        converter.escape_texts('gaiku')
 
+    converter = GeoloniaConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'geolonia'),
+        output_dir=output_dir,
+        priority=2,
+        targets=targets,
+        quiet=quiet
+    )
     if use_geolonia:
-        converters.append(
-            GeoloniaConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'geolonia'),
-                output_dir=output_dir,
-                priority=2,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('geolonia')
+        converters.append(converter)
+    else:
+        converter.escape_texts('geolonia')
 
+    converter = JushoConverter(
+        manager=manager,
+        input_dir=os.path.join(
+            download_dir, 'jusho'),
+        output_dir=output_dir,
+        priority=4,
+        targets=targets,
+        quiet=quiet
+    )
     if use_jusho:
-        converters.append(
-            JushoConverter(
-                manager=manager,
-                input_dir=os.path.join(
-                    download_dir, 'jusho'),
-                output_dir=output_dir,
-                priority=4,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('jusho')
+        converters.append(converter)
+    else:
+        converter.escape_texts('jusho')
 
+    converter = BaseRegistryConverter(
+        manager=manager,
+        input_dir=os.path.join(
+            download_dir, 'base_registry'),
+        output_dir=output_dir,
+        priority=9,
+        targets=targets,
+        quiet=quiet
+    )
     if use_basereg:
-        converters.append(
-            BaseRegistryConverter(
-                manager=manager,
-                input_dir=os.path.join(
-                    download_dir, 'base_registry'),
-                output_dir=output_dir,
-                priority=9,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('basereg_town')
+        converter.unescape_texts('basereg_blk')
+        converter.unescape_texts('basereg_rsdt')
+        converters.append(converter)
+    else:
+        converter.escape_texts('basereg_town')
+        converter.escape_texts('basereg_blk')
+        converter.escape_texts('basereg_rsdt')
 
     # Confirm acceptance of terms of uses.
     for converter in converters:
