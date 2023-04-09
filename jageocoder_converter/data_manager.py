@@ -12,7 +12,7 @@ import zipfile
 
 from jageocoder.aza_master import AzaMaster
 from jageocoder.dataset import Dataset
-from jageocoder.itaiji import converter as itaiji_converter
+# from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode, AddressNodeTable
 
@@ -182,16 +182,16 @@ class DataManager(object):
         self.tmp_text.seek(0)
         self.nodes = {}
         self.prev_key = ''
-        self.buffer = []
+        # self.buffer = []
         self.update_array = {}
 
         # Read all texts for the prefecture
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
-            _, arg0 = args[0].split("\t")
+            keys, arg0 = args[0].split("\t")
             args[0] = arg0
-            self.process_line(args)
+            self.process_line(args, keys.split(" "))
 
         # Process data remaining in buffers
         # if len(self.buffer) > 0:
@@ -224,6 +224,7 @@ class DataManager(object):
     def process_line(
         self,
         args: List[str],
+        keys: List[str],
     ) -> None:
         """
         Processes a single line of data.
@@ -234,6 +235,8 @@ class DataManager(object):
             Arguments in a line of formatted text data,
             including names of address elements, x and y values,
             and notes.
+        keys: List[str]
+            List of standardized address elements.
         """
         try:
             if self.re_float.match(args[-1]) and \
@@ -256,6 +259,7 @@ class DataManager(object):
             names = names[0:-1]
 
         self.add_elements(
+            keys=keys,
             names=names,
             x=x, y=y,
             note=note,
@@ -263,6 +267,7 @@ class DataManager(object):
 
     def add_elements(
             self,
+            keys: List[str],
             names: List[str],
             x: float,
             y: float,
@@ -274,6 +279,8 @@ class DataManager(object):
 
         Parameters
         ----------
+        keys: [str]
+            Standardized names of the address element.
         names: [str]
             Names of the address element.
         x: float
@@ -286,11 +293,11 @@ class DataManager(object):
             Source priority of this data.
         """
 
-        def gen_key_from_names(names: List[str]) -> str:
+        def gen_key(names: List[str]) -> str:
             return ','.join(names)
 
         # Check duprecate addresses.
-        key = gen_key_from_names(names)
+        key = gen_key(keys)
         if key in self.nodes:
             # logger.debug("Skip duprecate record: {}".format(key))
             return
@@ -318,7 +325,7 @@ class DataManager(object):
         # Add unregistered address elements to the buffer
         parent_id = self.root_node.id
         for i, name in enumerate(names):
-            key = gen_key_from_names(names[0:i + 1])
+            key = gen_key(keys[0:i + 1])
             if key in self.nodes:
                 parent_id = self.nodes[key]
                 continue
@@ -327,21 +334,21 @@ class DataManager(object):
             name = m.group(1)
             level = m.group(2)
             new_id = self.get_next_id()
-            name_index = itaiji_converter.standardize(name)
+            name_index = keys[i][0: keys[i].find(";")]  # itaiji_converter.standardize(name)
 
-            values = {
-                'id': new_id,
-                'name': name,
-                'name_index': name_index,
-                'x': x,
-                'y': y,
-                'level': level,
-                'priority': priority,
-                'note': note if i == len(names) - 1 else '',
-                'parent_id': parent_id,
-            }
+            # values = {
+            #     'id': new_id,
+            #     'name': name,
+            #     'name_index': name_index,
+            #     'x': x,
+            #     'y': y,
+            #     'level': level,
+            #     'priority': priority,
+            #     'note': note if i == len(names) - 1 else '',
+            #     'parent_id': parent_id,
+            # }
 
-            self.buffer.append(values)
+            # self.buffer.append(values)
 
             self.node_array.append({
                 "id": new_id,
@@ -351,7 +358,7 @@ class DataManager(object):
                 "y": y,
                 "level": int(level),
                 "priority": priority,
-                "note": note or "",
+                "note": (note or "") if i == len(names) - 1 else "",
                 "parentId": parent_id,
                 "siblingId": 0,
             })

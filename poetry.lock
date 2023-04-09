@@ -344,7 +344,7 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "portabletab"
-version = "0.3.0rc1"
+version = "0.3.0"
 description = "Python package for serializing tables in portable format with Capnp."
 category = "main"
 optional = false
@@ -633,4 +633,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.1,<4.0"
-content-hash = "85b8049285bf534319d018492c064d49a71afd096710631684eba202cb6fbfb3"
+content-hash = "57a25507a8b2967ebde9fd7ef5c360c8b91d5dbb413b704e6c5dcd35964737ff"

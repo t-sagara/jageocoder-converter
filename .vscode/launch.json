@@ -16,6 +16,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 東京都 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_tokyo",
+                "13"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 北海道 dictionary",
             "type": "python",
             "request": "launch",

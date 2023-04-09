@@ -442,7 +442,8 @@ class BaseConverter(object):
             if name[1] == '':
                 continue
 
-            keys.append(itaiji_converter.standardize(name[1]))
+            keys.append(
+                itaiji_converter.standardize(name[1]) + ";{}".format(name[0]))
 
         line = " ".join(keys) + "\t"
 
