@@ -103,18 +103,7 @@ class DataManager(object):
         # Initialize variables over prefectures
         self.root_node = AddressNode.root()
         self.cur_id = self.root_node.id
-        self.node_array = [{
-            "id": self.root_node.id,
-            "name": self.root_node.name,
-            "nameIndex": self.root_node.name,
-            "x": self.root_node.x,
-            "y": self.root_node.y,
-            "level": self.root_node.level,
-            "priority": self.root_node.priority,
-            "note": self.root_node.note,
-            "parentId": self.root_node.parent_id,
-            "siblingId": self.root_node.parent_id,
-        }]
+        self.node_array = [self.root_node.to_record()]
 
         # Register from files
         for prefcode in self.targets:
@@ -336,32 +325,18 @@ class DataManager(object):
             new_id = self.get_next_id()
             name_index = keys[i][0: keys[i].find(";")]  # itaiji_converter.standardize(name)
 
-            # values = {
-            #     'id': new_id,
-            #     'name': name,
-            #     'name_index': name_index,
-            #     'x': x,
-            #     'y': y,
-            #     'level': level,
-            #     'priority': priority,
-            #     'note': note if i == len(names) - 1 else '',
-            #     'parent_id': parent_id,
-            # }
-
-            # self.buffer.append(values)
-
-            self.node_array.append({
-                "id": new_id,
-                "name": name,
-                "nameIndex": name_index,
-                "x": x,
-                "y": y,
-                "level": int(level),
-                "priority": priority,
-                "note": (note or "") if i == len(names) - 1 else "",
-                "parentId": parent_id,
-                "siblingId": 0,
-            })
+            node = AddressNode(
+                id=new_id,
+                name=name,
+                name_index=name_index,
+                x=x,
+                y=y,
+                level=level,
+                priority=priority,
+                note=note if i == len(names) - 1 else "",
+                parent_id=parent_id
+            )
+            self.node_array.append(node.to_record())
 
             while len(self.node_array) >= self.address_nodes.PAGE_SIZE:
                 self.address_nodes.append_records(self.node_array)
