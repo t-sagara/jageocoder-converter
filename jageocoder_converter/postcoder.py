@@ -4,7 +4,7 @@ import io
 from logging import getLogger
 import os
 import re
-from typing import Union, NoReturn
+from typing import Union
 import zipfile
 
 import marisa_trie
@@ -32,7 +32,7 @@ class PostCoder(BaseConverter):
         self.codes = {}
         self.trie = None
 
-    def load_file(self) -> NoReturn:
+    def load_file(self) -> None:
         """
         Read 'ken_all.csv'
         """
@@ -180,7 +180,7 @@ class PostCoder(BaseConverter):
         return True
 
     def _register_address(
-            self, oaza: str, aza: str, postalcode: str) -> NoReturn:
+            self, oaza: str, aza: str, postalcode: str) -> None:
         standardized = converter.standardize(oaza)
         if standardized not in self.addresses:
             self.addresses.add(standardized)

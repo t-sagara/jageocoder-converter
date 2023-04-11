@@ -8,7 +8,7 @@ For more detailed information, please refer to
 
 ### Prerequisites
 
-Requires Python 3.6.x or later.
+Requires Python 3.7 or later.
 
 ### Installing
 
@@ -27,10 +27,10 @@ Show help with the following command.
 python -m jageocoder_converter -h
 ``` 
 
-To create a dictionary, specify the `convert` command.
+To create a dictionary, run the following command.
 
 ```sh
-python -m jageocoder_converter convert
+python -m jageocoder_converter
 ```
 
 During the process, it downloads the location reference information

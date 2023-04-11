@@ -1,18 +1,19 @@
 import copy
 import csv
-import io
-import json
+# import io
+# import json
 from logging import getLogger
 import os
 import tempfile
-import time
-from typing import Union, NoReturn, Optional, List
-import urllib.parse
-import urllib.request
+# import time
+from typing import Union, Optional, List
+# import urllib.parse
+# import urllib.request
 import zipfile
 
 from jageocoder.address import AddressLevel
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 from pyproj import Transformer
 
 logger = getLogger(__name__)
@@ -31,10 +32,10 @@ class BaseRegistryConverter(BaseConverter):
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
@@ -338,10 +339,10 @@ class BaseRegistryConverter(BaseConverter):
 
         return orig_code + checkdigit
 
-    def download_files(self) -> NoReturn:
+    def download_files(self) -> None:
         """
         Now all address-base data files are zipped in one file.
-        The file should be already downloaded by 
+        The file should be already downloaded by
         BaseConverter.get_address_all(), but confirm here.
         """
         # 0000004: 住居表示・街区マスター

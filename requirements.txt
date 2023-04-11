@@ -1,2 +1,1 @@
-jaconv>=0.3
-jageocoder>=0.2.0
+jageocoder>=1.4.1

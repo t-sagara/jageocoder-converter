@@ -5,10 +5,9 @@ from logging import getLogger
 import os
 import re
 import tempfile
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 
 from jageocoder.dataset import Dataset
-from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
 
@@ -38,7 +37,7 @@ class DataManager(object):
     def __init__(self,
                  db_dir: Union[str, bytes, os.PathLike],
                  text_dir: Union[str, bytes, os.PathLike],
-                 targets: Optional[List[str]] = None) -> NoReturn:
+                 targets: Optional[List[str]] = None) -> None:
         """
         Initialize the manager.
 
@@ -69,9 +68,8 @@ class DataManager(object):
         self.root_node = self.tree.get_root()
         self.nodes = {}
         self.cur_id = self.root_node.id
-        self.prev_names = []
 
-    def write_datasets(self, converters: list) -> NoReturn:
+    def write_datasets(self, converters: list) -> None:
         """
         Write dataset metadata to 'dataset' table.
         """
@@ -85,7 +83,7 @@ class DataManager(object):
 
         self.session.commit()
 
-    def register(self) -> NoReturn:
+    def register(self) -> None:
         """
         Process prefectures in the target list.
 
@@ -103,14 +101,14 @@ class DataManager(object):
         self.tree.create_reverse_index()
         self.tree.create_note_index_table()
 
-    def create_index(self) -> NoReturn:
+    def create_index(self) -> None:
         """
         Create relational index and trie index.
         """
         self.tree.create_tree_index()
-        # self.tree.create_trie_index()
+        self.tree.create_trie_index()
 
-    def open_tmpfile(self) -> NoReturn:
+    def open_tmpfile(self) -> None:
         """
         Create a temporary file to store the sorted text.
         If it has already been created, delete it and create a new one.
@@ -120,7 +118,7 @@ class DataManager(object):
 
         self.tmp_text = tempfile.TemporaryFile(mode='w+b')
 
-    def sort_data(self, prefcode: str) -> NoReturn:
+    def sort_data(self, prefcode: str) -> None:
         """
         Read records from text files that matches the specified
         prefecture code, sort the records,
@@ -144,19 +142,23 @@ class DataManager(object):
         for record in records:
             self.tmp_text.write(record)
 
-    def write_database(self) -> NoReturn:
+    def write_database(self) -> None:
         """
         Generates records that can be output to a database
         from sorted and formatted text in the temporary file,
         and bulk inserts them to the database.
         """
         self.tmp_text.seek(0)
+        self.prev_key = ''
         self.buffer = []
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
-            self.process_line(args)
+            keys, arg0 = args[0].split("\t")
+            args[0] = arg0
+            self.process_line(args, keys.split(" "))
 
+        # Process data remaining in buffers
         if len(self.buffer) > 0:
             self.session.execute(
                 AddressNode.__table__.insert(),
@@ -170,7 +172,11 @@ class DataManager(object):
         self.cur_id += 1
         return self.cur_id
 
-    def process_line(self, args: List[str]) -> NoReturn:
+    def process_line(
+        self,
+        args: List[str],
+        keys: List[str]
+    ) -> None:
         """
         Processes a single line of data.
 
@@ -180,6 +186,8 @@ class DataManager(object):
             Arguments in a line of formatted text data,
             including names of address elements, x and y values,
             and notes.
+        keys: List[str]
+            List of standardized address elements.
         """
         try:
             if self.re_float.match(args[-1]) and \
@@ -202,6 +210,7 @@ class DataManager(object):
             names = names[0:-1]
 
         self.add_elements(
+            keys=keys,
             names=names,
             x=x, y=y,
             note=note,
@@ -209,17 +218,20 @@ class DataManager(object):
 
     def add_elements(
             self,
+            keys: List[str],
             names: List[str],
             x: float,
             y: float,
             note: Optional[str],
-            priority: Optional[int]) -> NoReturn:
+            priority: Optional[int]) -> None:
         """
         Format the address elements into a form that can be registered
         in the database. The parent_id is also calculated and assigned.
 
         Parameters
         ----------
+        keys: [str]
+            Standardized names of the address element.
         names: [str]
             Names of the address element.
         x: float
@@ -232,25 +244,31 @@ class DataManager(object):
             Source priority of this data.
         """
 
-        def gen_key_from_names(names: List[str]) -> str:
+        def gen_key(names: List[str]) -> str:
             return ','.join(names)
 
         # Check duprecate addresses.
-        key = gen_key_from_names(names)
+        key = gen_key(keys)
         if key in self.nodes:
             # logger.debug("Skip duprecate record: {}".format(key))
             return
 
         # Delete unnecessary cache.
-        if len(names) <= len(self.prev_names):
-            for i in range(len(names) - 1, len(self.prev_names)):
-                key = gen_key_from_names(self.prev_names[0:i+1])
-                del self.nodes[key]
+        if not key.startswith(self.prev_key):
+            for k, target_id in self.nodes.items():
+                if not key.startswith(k) or \
+                        (len(key) > len(k) and key[len(k)] != ','):
+                    self.nodes[k] = None
+
+            self.nodes = {
+                k: v
+                for k, v in self.nodes.items() if v is not None
+            }
 
         # Add unregistered address elements to the buffer
         parent_id = self.root_node.id
         for i, name in enumerate(names):
-            key = gen_key_from_names(names[0:i + 1])
+            key = gen_key(keys[0:i + 1])
             if key in self.nodes:
                 parent_id = self.nodes[key]
                 continue
@@ -259,7 +277,7 @@ class DataManager(object):
             level = m.group(1)
             name = m.group(2)
             new_id = self.get_next_id()
-            name_index = itaiji_converter.standardize(name)
+            name_index = keys[i][0: keys[i].find(";")]
 
             values = {
                 'id': new_id,
@@ -275,7 +293,7 @@ class DataManager(object):
 
             self.buffer.append(values)
             self.nodes[key] = new_id
-            self.prev_names = names
+            self.prev_key = key
             parent_id = new_id
 
 
