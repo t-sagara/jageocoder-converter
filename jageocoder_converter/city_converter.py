@@ -69,11 +69,12 @@ class CityConverter(BaseConverter):
                 f.write(content)
 
         input_filepath = os.path.join(
-            self.input_dir, 'geoshape-city.csv')
+            self.input_dir, 'geoshape-city-geolod.csv')
         if not os.path.exists(input_filepath):
             self.download(
                 urls=[
-                    'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
+                    'https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/geoshape-city-geolod.csv'
+                    # 'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
                 ],
                 dirname=self.input_dir
             )
@@ -105,16 +106,16 @@ class CityConverter(BaseConverter):
 
     def read_city_file(self):
         """
-        Read 'geoshape-city.csv'
+        Read 'geoshape-city-geolod.csv'
         """
         input_filepath = os.path.join(
-            self.input_dir, 'geoshape-city.csv')
+            self.input_dir, 'geoshape-city-geolod.csv')
         jiscodes = {}
         with open(input_filepath, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
             head = {}
             for rows in reader:
-                if rows[0] in ('geonlp_id', 'entry_id'):
+                if rows[0] in ('geonlp_id', 'entry_id', 'geolod_id'):
                     for i, row in enumerate(rows):
                         head[row] = i
 

@@ -87,7 +87,7 @@ class JushoConverter(BaseConverter):
 
                 with z.open(filename, mode='r') as f:
                     ft = io.TextIOWrapper(
-                        f, encoding='CP932', newline='',
+                        f, encoding='utf-8', newline='',
                         errors='backslashreplace')
                     reader = csv.reader(ft)
                     pre_args = None

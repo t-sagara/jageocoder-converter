@@ -2,7 +2,7 @@ from logging import getLogger
 import os
 from typing import Optional, List, Union
 
-__version__ = '2.0.0rc1'
+__version__ = '2.0.0rc2'
 
 import jageocoder
 import jageocoder_converter.config
@@ -175,8 +175,9 @@ def convert(
 
     # Converts location reference information from various sources
     # into the text format.
-    manager.prepare_aza_table(
-        os.path.join(download_dir, 'base_registry'))
+    aza_data_dir = os.path.join(download_dir, 'base_registry')
+    converters[0].get_address_all(aza_data_dir)
+    manager.prepare_aza_table(aza_data_dir)
     for converter in converters:
         logger.info("{} で変換処理を実行中".format(converter))
         converter.convert()

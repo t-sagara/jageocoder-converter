@@ -136,8 +136,9 @@ class GeoloniaConverter(BaseConverter):
         'Geolonia 住所データ'
         https://geolonia.github.io/japanese-addresses/
         """
-        url = 'https://raw.githubusercontent.com/geolonia/' \
-            + 'japanese-addresses/master/data/latest.csv'
+        # url = 'https://raw.githubusercontent.com/geolonia/' \
+        #     + 'japanese-addresses/master/data/latest.csv'
+        url = "https://geolonia.github.io/japanese-addresses/latest.csv"
 
         self.download(
             urls=[url],

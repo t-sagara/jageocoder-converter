@@ -182,13 +182,6 @@ class DataManager(object):
             args[0] = arg0
             self.process_line(args, keys.split(" "))
 
-        # Process data remaining in buffers
-        # if len(self.buffer) > 0:
-        #     self.session.execute(
-        #         AddressNode.__table__.insert(),
-        #         self.buffer)
-        #     self.session.commit()
-
         if len(self.nodes) > 0:
             for key, target_id in self.nodes.items():
                 res = self._set_sibling(target_id, self.cur_id + 1)
@@ -323,7 +316,8 @@ class DataManager(object):
             name = m.group(1)
             level = m.group(2)
             new_id = self.get_next_id()
-            name_index = keys[i][0: keys[i].find(";")]  # itaiji_converter.standardize(name)
+            # itaiji_converter.standardize(name)
+            name_index = keys[i][0: keys[i].find(";")]
 
             node = AddressNode(
                 id=new_id,
@@ -382,7 +376,7 @@ class DataManager(object):
         logger.debug("Creating aza_master table...")
         zipfilepath = os.path.join(download_dir, 'mt_town_all.csv.zip')
         if not os.path.exists(zipfilepath):
-            self.get_address_all(download_dir)
+            raise RuntimeError(f"Can't open {zipfilepath}.")
 
         # Initialize Capnp table
         self.aza_master = AzaMaster(db_dir=self.db_dir)
