@@ -17,7 +17,6 @@ import zipfile
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
-from sqlalchemy import Index
 import urllib.request
 
 import jageocoder_converter.config
@@ -322,9 +321,6 @@ class BaseConverter(object):
 
         self.manager.session.commit()
         logger.debug("  Creating index on aza_master.names_index...")
-        aza_master_names_index = Index(
-            'ix_aza_master_names_index', AzaMaster.names_index)
-        aza_master_names_index.create(self.manager.engine)
 
     def dataurl_from_metadata(
             self,
