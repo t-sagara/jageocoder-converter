@@ -534,7 +534,7 @@ class BaseConverter(object):
 
         for name in names:
             if name[1] != '':
-                line += '{:d};{:s},'.format(*name)
+                line += '{:s};{:d},'.format(name[1], name[0])
 
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)

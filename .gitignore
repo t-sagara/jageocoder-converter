@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 # Visual Studio Code
-.vscode/
 /*.code-workspace
 
 # Data directories

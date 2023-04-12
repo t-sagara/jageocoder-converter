@@ -32,7 +32,7 @@ class DataManager(object):
 
     # Regular expression
     re_float = re.compile(r'^\-?\d+\.?\d*$')
-    re_address = re.compile(r'^(\d+);(.*)$')
+    re_address = re.compile(r'^(.*);(\d+)$')
 
     def __init__(self,
                  db_dir: Union[str, bytes, os.PathLike],
@@ -274,8 +274,8 @@ class DataManager(object):
                 continue
 
             m = self.re_address.match(name)
-            level = m.group(1)
-            name = m.group(2)
+            name = m.group(1)
+            level = m.group(2)
             new_id = self.get_next_id()
             name_index = keys[i][0: keys[i].find(";")]
 
