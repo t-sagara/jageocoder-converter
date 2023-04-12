@@ -44,6 +44,9 @@ def build_gaiku():
             )
 
         readme = db_dir / "README.md"
+        if readme.exists():
+            readme.unlink()
+
         readme.hardlink_to(
             Path(__file__).parent / "doc/README-gaiku.md"
         )
@@ -80,6 +83,9 @@ def build_jukyo():
             )
 
         readme = db_dir / "README.md"
+        if readme.exists():
+            readme.unlink()
+
         readme.hardlink_to(
             Path(__file__).parent / "doc/README-jukyo.md"
         )
