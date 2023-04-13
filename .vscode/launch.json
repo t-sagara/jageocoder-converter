@@ -113,6 +113,17 @@
                 "--db-dir=./db_hokkaido",
                 "北区北8西5"
             ]
+        },
+        {
+            "name": "Test base_registry only dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-dq",
+                "--no-geolod", "--no-oaza", "--no-gaiku", "--no-geolonia", "--no-jusho",
+                "--db-dir=./db_basereg"
+            ]
         }
     ]
 }

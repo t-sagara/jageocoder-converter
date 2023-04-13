@@ -45,6 +45,7 @@ def __prepare_postcoder(directory: PathLike):
 
 def convert(
     prefs: Optional[List[str]] = None,
+    use_geolod: bool = True,
     use_oaza: bool = True,
     use_gaiku: bool = True,
     use_geolonia: bool = True,
@@ -74,15 +75,21 @@ def convert(
         targets=targets)
 
     # Prepare a converter for the target data set
-    converters = [
-        CityConverter(
+    converters = []
+
+    converter = CityConverter(
             manager=manager,
             input_dir=os.path.join(download_dir, 'geonlp'),
             output_dir=output_dir,
             priority=1,
             targets=targets,
-            quiet=quiet)
-    ]
+            quiet=quiet
+    )
+    if use_oaza:
+        converter.unescape_texts('city')
+        converters.append(converter)
+    else:
+        converter.escape_texts('city')
 
     converter = OazaConverter(
         manager=manager,
