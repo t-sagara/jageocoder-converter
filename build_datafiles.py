@@ -1,7 +1,10 @@
 from datetime import date
+import glob
 import logging
 from pathlib import Path
 import re
+import shutil
+import sys
 
 import jageocoder
 import jageocoder_converter
@@ -10,14 +13,10 @@ logger = logging.getLogger(__name__)
 
 versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
 ver = "v" + versions.group(1) + versions.group(2)
-base_db_dir = Path("./") / "db_{}".format(
-    date.today().strftime("%Y%m%d")
-)
 
 
-def build_gaiku():
+def build_gaiku(base_db_dir: Path):
     global ver
-    global base_db_dir
 
     for pref in [None]:
         if pref is not None:
@@ -52,9 +51,8 @@ def build_gaiku():
         )
 
 
-def build_jukyo():
+def build_jukyo(base_db_dir: Path):
     global ver
-    global base_db_dir
 
     all_prefs = ["{:02d}".format(x) for x in range(1, 48)] + [None]
 
@@ -103,5 +101,47 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
         logger.addHandler(console_handler)
 
-    build_gaiku()
-    build_jukyo()
+    if len(sys.argv) < 2:
+        base_db_dir = Path("./") / "db_{}".format(
+            date.today().strftime("%Y%m%d")
+        )
+    else:
+        base_db_dir = Path(sys.argv[1])
+
+    build_gaiku(base_db_dir)
+    build_jukyo(base_db_dir)
+
+    # Create zip files
+    for v1_dir in glob.glob(str(base_db_dir / "*_v1*")):
+        for fname in ("README.md", "address.db", "address.trie"):
+            target = Path(v1_dir) / fname
+            if not target.exists():
+                logger.warning(f"'{target}' does not exists.")
+                break
+
+        else:  # When all files exist
+            shutil.make_archive(
+                base_name=v1_dir,
+                format="zip",
+                root_dir=v1_dir,
+            )
+
+    for v2_dir in glob.glob(str(base_db_dir / "*_v2*")):
+        for fname in (
+            "README.md",
+            "address.trie",
+            "aza_master",
+            "dataset",
+            "trienode",
+        ):
+            target = Path(v2_dir) / fname
+            if not target.exists():
+                logger.warning(f"'{target}' does not exists.")
+                break
+
+        else:  # When all files exist
+            shutil.make_archive(
+                base_name=v2_dir,
+                format="zip",
+                root_dir=v2_dir,
+            )

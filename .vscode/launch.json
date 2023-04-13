@@ -13,6 +13,17 @@
             "justMyCode": true
         },
         {
+            "name": "Python: Build Datafiles",
+            "type": "python",
+            "request": "launch",
+            "program": "build_datafiles.py",
+            "args": [
+                "db_20230411"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "Build dictionary",
             "type": "python",
             "request": "launch",
