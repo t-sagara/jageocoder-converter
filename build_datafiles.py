@@ -112,36 +112,40 @@ if __name__ == "__main__":
     build_jukyo(base_db_dir)
 
     # Create zip files
-    for v1_dir in glob.glob(str(base_db_dir / "*_v1*")):
-        for fname in ("README.md", "address.db", "address.trie"):
-            target = Path(v1_dir) / fname
-            if not target.exists():
-                logger.warning(f"'{target}' does not exists.")
-                break
+    if versions.group(1) == "1":
+        for v1_dir in glob.glob(str(base_db_dir / "*_v1*")):
+            for fname in ("README.md", "address.db", "address.trie"):
+                target = Path(v1_dir) / fname
+                if not target.exists():
+                    logger.warning(f"'{target}' does not exists.")
+                    break
 
-        else:  # When all files exist
-            shutil.make_archive(
-                base_name=v1_dir,
-                format="zip",
-                root_dir=v1_dir,
-            )
+            else:  # When all files exist
+                logger.info(f"Archiving '{v1_dir}'")
+                shutil.make_archive(
+                    base_name=v1_dir,
+                    format="zip",
+                    root_dir=v1_dir,
+                )
 
-    for v2_dir in glob.glob(str(base_db_dir / "*_v2*")):
-        for fname in (
-            "README.md",
-            "address.trie",
-            "aza_master",
-            "dataset",
-            "trienode",
-        ):
-            target = Path(v2_dir) / fname
-            if not target.exists():
-                logger.warning(f"'{target}' does not exists.")
-                break
+    if versions.group(1) == "2":
+        for v2_dir in glob.glob(str(base_db_dir / "*_v2*")):
+            for fname in (
+                "README.md",
+                "address.trie",
+                "aza_master",
+                "dataset",
+                "trienode",
+            ):
+                target = Path(v2_dir) / fname
+                if not target.exists():
+                    logger.warning(f"'{target}' does not exists.")
+                    break
 
-        else:  # When all files exist
-            shutil.make_archive(
-                base_name=v2_dir,
-                format="zip",
-                root_dir=v2_dir,
-            )
+            else:  # When all files exist
+                logger.info(f"Archiving '{v2_dir}'")
+                shutil.make_archive(
+                    base_name=v2_dir,
+                    format="zip",
+                    root_dir=v2_dir,
+                )
