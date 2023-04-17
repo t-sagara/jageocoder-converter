@@ -119,7 +119,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     以下の文言を記載してください。国土交通省の利用規約も満たします。
 
     「位置参照情報（大字町丁目・街区レベル）令和３年」（国土交通省）、
-    「電子国土基本図（地名情報）住居表示住所 2022-11-16」（国土地理院）、
+    「電子国土基本図（地名情報）住居表示住所 2023-03-31」（国土地理院）、
     「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/、
     「アドレス・ベース・レジストリ」（デジタル庁）
     https://www.digital.go.jp/policies/base_registry_address_tos/
