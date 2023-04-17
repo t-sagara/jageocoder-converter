@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "build_datafiles.py",
             "args": [
-                "db_20230411"
+                "db_20230414"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
@@ -121,7 +121,11 @@
             "module": "jageocoder_converter",
             "args": [
                 "-dq",
-                "--no-geolod", "--no-oaza", "--no-gaiku", "--no-geolonia", "--no-jusho",
+                "--no-geolod",
+                "--no-oaza",
+                "--no-gaiku",
+                "--no-geolonia",
+                "--no-jusho",
                 "--db-dir=./db_basereg"
             ]
         }
