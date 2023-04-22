@@ -37,6 +37,7 @@ class BaseRegistryConverter(BaseConverter):
         self.input_dir = input_dir
         self.fp = None
         self.blocks = None
+        self._processed_azaid = None
 
     def confirm(self) -> bool:
         """
@@ -48,6 +49,63 @@ class BaseRegistryConverter(BaseConverter):
             "利用規約を必ず確認してください。\n"
         )
         return super().confirm(terms)
+
+    def process_lines_01(self, fin, pref_code):
+        """
+        Parse lines and output address nodes in 'mt_town_all.csv'.
+
+        全国地方公共団体コード,
+        町字id,
+        町字区分コード,
+        都道府県名,
+        都道府県名_カナ,
+        都道府県名_英字,
+        郡名,
+        郡名_カナ,
+        郡名_英字,
+        市区町村名,
+        市区町村名_カナ,
+        市区町村名_英字,
+        政令市区名,
+        政令市区名_カナ,
+        政令市区名_英字,
+        大字・町名,
+        大字・町名_カナ,
+        大字・町名_英字,
+        丁目名,
+        丁目名_カナ,
+        丁目名_数字,
+        小字名,
+        小字名_カナ,
+        小字名_英字,
+        住居表示フラグ,
+        住居表示方式コード,
+        大字・町名_通称フラグ,
+        小字名_通称フラグ,
+        大字・町名_電子国土基本図外字,
+        小字名_電子国土基本図外字,
+        状態フラグ,
+        起番フラグ,
+        効力発生日,
+        廃止日,
+        原典資料コード,
+        郵便番号,
+        備考
+        """
+        reader = csv.DictReader(fin)
+        for row in reader:
+            citycode = row["全国地方公共団体コード"][0:5]
+            if citycode[0:2] != pref_code:
+                continue
+
+            aza_id = row["町字id"]
+            if aza_id in self._processed_azaid:
+                continue
+
+            names = self.names_from_code(citycode + aza_id)
+            x, y = 999.9, 999.9
+            note = 'aza_id:{}'.format(aza_id)
+            self.print_line_with_postcode(names, x, y, note)
 
     def process_lines_06(self, fin):
         """
@@ -87,6 +145,7 @@ class BaseRegistryConverter(BaseConverter):
                     "x or y is empty. citycode={}, aza_id={}".format(
                         citycode, aza_id))
 
+            self._processed_azaid.add(aza_id)
             self.print_line_with_postcode(names, x, y, note)
 
     def process_lines_07(self, fin):
@@ -240,8 +299,8 @@ class BaseRegistryConverter(BaseConverter):
 
     def convert(self):
         """
-        Read records from 'geolonia/latest.csv' file, format them,
-        then output to 'output/xx_geolonia.txt'.
+        Read records from 'mt_town_pos_prefxx.csv' file, format them,
+        then output to 'text/xx_basereg_town.txt'.
         """
         self.prepare_jiscode_table()
 
@@ -255,6 +314,8 @@ class BaseRegistryConverter(BaseConverter):
                 all_zip = os.path.join(
                     self.input_dir, 'mt_town_pos_all.csv.zip')
                 filename = f"mt_town_pos_pref{pref_code}.csv.zip"
+
+                self._processed_azaid = set()
                 with tempfile.NamedTemporaryFile("w+b") as nt:
                     with zipfile.ZipFile(all_zip) as z:
                         with z.open(filename, mode='r') as f:
@@ -264,6 +325,14 @@ class BaseRegistryConverter(BaseConverter):
                             self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
                         self.process_lines_06(fin)
+
+                zip_filename = os.path.join(
+                    self.input_dir, "mt_town_all.csv.zip")
+
+                with open(output_filepath, 'a', encoding='utf-8') as fout, \
+                        self.manager.open_csv_in_zipfile(zip_filename) as fin:
+                    self.fp = fout
+                    self.process_lines_01(fin, pref_code)
 
             # 住居表示－街区マスター位置参照拡張
             output_filepath = os.path.join(
