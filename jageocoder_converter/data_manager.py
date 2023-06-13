@@ -12,7 +12,7 @@ import zipfile
 
 from jageocoder.aza_master import AzaMaster
 from jageocoder.dataset import Dataset
-# from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode, AddressNodeTable
 
@@ -37,6 +37,7 @@ class DataManager(object):
     # Regular expression
     re_float = re.compile(r'^\-?\d+\.?\d*$')
     re_address = re.compile(r'^([^;]+);(\d+)$')
+    re_name_level = re.compile(r'([^!]*?);(\d+),')
 
     def __init__(self,
                  db_dir: Union[str, bytes, os.PathLike],
@@ -152,9 +153,14 @@ class DataManager(object):
         records = []
         for filename in glob.glob(
                 os.path.join(self.text_dir, prefcode + '_*.txt')):
-            with open(filename, mode='rb') as fb_in:
+            with open(filename, mode='r') as fb_in:
                 for line in fb_in:
-                    records.append(line)
+                    names = self.re_name_level.findall(line)
+                    newline = " ".join([
+                        itaiji_converter.standardize(x[0]) + f";{x[1]}"
+                        for x in names
+                    ]) + f"\t{line}"
+                    records.append(newline.encode(encoding='utf-8'))
 
         records.sort()
         for record in records:
@@ -178,6 +184,11 @@ class DataManager(object):
         fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
         reader = csv.reader(fp)
         for args in reader:
+            if "\t" not in args[0]:
+                print(args)
+                import pdb
+                pdb.set_trace()
+
             keys, arg0 = args[0].split("\t")
             args[0] = arg0
             self.process_line(args, keys.split(" "))

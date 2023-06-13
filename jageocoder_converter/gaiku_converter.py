@@ -130,7 +130,7 @@ class GaikuConverter(BaseConverter):
         if args[2] != '' and args[2] != '（大字なし）':
             names += self.guessAza(args[2], jcode)
 
-        if args[3] != '':
+        if args[3] != '' and args[3] != ' ':
             names.append([AddressLevel.AZA, args[3]])
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
