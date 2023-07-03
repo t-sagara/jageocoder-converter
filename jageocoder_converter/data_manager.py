@@ -8,6 +8,7 @@ import tempfile
 from typing import Union, Optional, List
 
 from jageocoder.dataset import Dataset
+from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.tree import AddressTree
 from jageocoder.node import AddressNode
 
@@ -33,6 +34,7 @@ class DataManager(object):
     # Regular expression
     re_float = re.compile(r'^\-?\d+\.?\d*$')
     re_address = re.compile(r'^(.*);(\d+)$')
+    re_name_level = re.compile(r'([^!]*?);(\d+),')
 
     def __init__(self,
                  db_dir: Union[str, bytes, os.PathLike],
@@ -134,9 +136,14 @@ class DataManager(object):
         records = []
         for filename in glob.glob(
                 os.path.join(self.text_dir, prefcode + '_*.txt')):
-            with open(filename, mode='rb') as fb_in:
+            with open(filename, mode='r') as fb_in:
                 for line in fb_in:
-                    records.append(line)
+                    names = self.re_name_level.findall(line)
+                    newline = " ".join([
+                        itaiji_converter.standardize(x[0]) + f";{x[1]}"
+                        for x in names
+                    ]) + f"\t{line}"
+                    records.append(newline.encode(encoding='utf-8'))
 
         records.sort()
         for record in records:
