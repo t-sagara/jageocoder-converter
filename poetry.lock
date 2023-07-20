@@ -122,29 +122,27 @@ files = [
 
 [[package]]
 name = "jageocoder"
-version = "2.0.2rc1"
+version = "2.0.2"
 description = "A Japanese-address geocoder for Python."
 category = "main"
 optional = false
-python-versions = "^3.7"
-files = []
-develop = true
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "jageocoder-2.0.2-py3-none-any.whl", hash = "sha256:66f5b7b8babe28f178cc93873f47e4a6e88326244e340d0fbcb2c983586ab24c"},
+    {file = "jageocoder-2.0.2.tar.gz", hash = "sha256:05141715df76ea7c4e27e0e035ae996b6e19b4bc13cb5d23de99436c43226a46"},
+]
 
 [package.dependencies]
-deprecated = "^1.2.13"
-docopt = "^0.6.2"
-geographiclib = "^2.0"
-jaconv = "^0.3.4"
-marisa-trie = "^0.7.8"
-portabletab = "0.3.3"
-pycapnp = "^1.3.0"
-rtree = "^1.0.0"
-tqdm = "^4.00.0"
+deprecated = ">=1.2.13,<2.0.0"
+docopt = ">=0.6.2,<0.7.0"
+geographiclib = ">=2.0,<3.0"
+jaconv = ">=0.3.4,<0.4.0"
+marisa-trie = ">=0.7.8,<0.8.0"
+portabletab = ">=0.3.3"
+pycapnp = ">=1.3.0,<2.0.0"
+rtree = ">=1.0.0,<2.0.0"
+tqdm = ">=4.00.0,<5.0.0"
 Werkzeug = ">=2.2.3"
-
-[package.source]
-type = "directory"
-url = "../jageocoder"
 
 [[package]]
 name = "marisa-trie"
@@ -689,4 +687,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.1,<4.0"
-content-hash = "57a25507a8b2967ebde9fd7ef5c360c8b91d5dbb413b704e6c5dcd35964737ff"
+content-hash = "63b8d47d7b64fe7617f02ab35cb16074818d9bd1dfdc683eb79a4e4c0ea70322"

@@ -53,7 +53,7 @@ class OazaConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '15.0b'  # PY2021, 令和3年度
+        version = '16.0b'  # PY2022, 令和4年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -77,6 +77,7 @@ class OazaConverter(BaseConverter):
 
         note = None
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
+        ccode = ("00000" + ccode)[-5:]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)
         azacode = self.code_from_names(address)

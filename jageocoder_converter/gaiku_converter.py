@@ -57,7 +57,7 @@ class GaikuConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '20.0a'  # PY2021, 令和3年度
+        version = '21.0a'  # PY2022, 令和4年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -75,6 +75,10 @@ class GaikuConverter(BaseConverter):
         """
         if args[0] == '都道府県名' or args[2] == '' or args[11] == '0':
             # Skip line with blank Aza-names and non-representative points
+            return
+
+        if '.' in args[4]:
+            # 街区符号・地番に小数点を含む場合はエラーとして無視
             return
 
         """
@@ -140,6 +144,7 @@ class GaikuConverter(BaseConverter):
                 # 大阪市中央区上町の A番-C番 対応
                 names.append([AddressLevel.BLOCK, hugou + '番'])
             else:
+                # 「渡辺」対応
                 logger.debug("Non-numeric hugou '{}' in {}".format(
                     hugou, ','.join(args)))
                 names.append([AddressLevel.BLOCK, hugou])
@@ -159,8 +164,8 @@ class GaikuConverter(BaseConverter):
                     names.append([AddressLevel.BLOCK, chiban + '番地'])
                 else:
                     # 脱落地
-                    logger.debug("Datsurakuchi '{}' in {}".format(
-                        hugou, ','.join(args)))
+                    # logger.debug("Datsurakuchi '{}' in {}".format(
+                    #     hugou, ','.join(args)))
                     if chiban[-1] == '号':
                         names.append([AddressLevel.BLOCK, chiban])
                     else:

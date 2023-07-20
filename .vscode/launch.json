@@ -71,6 +71,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 茨城県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_ibaraki",
+                "08"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 長野県 dictionary",
             "type": "python",
             "request": "launch",

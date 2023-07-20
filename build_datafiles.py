@@ -238,7 +238,7 @@ def filelist_html(base_db_dir: Path) -> str:
 if __name__ == "__main__":
     # Set logger
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(
         logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
     )

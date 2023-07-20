@@ -2,7 +2,7 @@ from logging import getLogger
 import os
 from typing import Optional, List, Union
 
-__version__ = '2.0.0rc2'
+__version__ = '2.0.2'
 
 import jageocoder
 import jageocoder_converter.config

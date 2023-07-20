@@ -186,8 +186,7 @@ class DataManager(object):
         for args in reader:
             if "\t" not in args[0]:
                 print(args)
-                import pdb
-                pdb.set_trace()
+                raise RuntimeError("Tab is not found in the sorted text!")
 
             keys, arg0 = args[0].split("\t")
             args[0] = arg0
