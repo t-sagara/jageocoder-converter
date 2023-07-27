@@ -1,7 +1,8 @@
+from logging import getLogger
 import os
 from typing import Optional, List, Union
 
-__version__ = '1.2.0'
+__version__ = '2.0.2'
 
 import jageocoder
 import jageocoder_converter.config
@@ -25,6 +26,7 @@ __all__ = [
 ]
 
 PathLike = Union[str, bytes, os.PathLike]
+logger = getLogger(__name__)
 
 
 def __prepare_postcoder(directory: PathLike):
@@ -43,6 +45,7 @@ def __prepare_postcoder(directory: PathLike):
 
 def convert(
     prefs: Optional[List[str]] = None,
+    use_geolod: bool = True,
     use_oaza: bool = True,
     use_gaiku: bool = True,
     use_geolonia: bool = True,
@@ -72,90 +75,123 @@ def convert(
         targets=targets)
 
     # Prepare a converter for the target data set
-    converters = [
-        CityConverter(
+    converters = []
+
+    converter = CityConverter(
             manager=manager,
             input_dir=os.path.join(download_dir, 'geonlp'),
             output_dir=output_dir,
             priority=1,
             targets=targets,
-            quiet=quiet)
-    ]
+            quiet=quiet
+    )
     if use_oaza:
-        converters.append(
-            OazaConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'oaza'),
-                output_dir=output_dir,
-                priority=9,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('city')
+        converters.append(converter)
+    else:
+        converter.escape_texts('city')
 
+    converter = OazaConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'oaza'),
+        output_dir=output_dir,
+        priority=8,
+        targets=targets,
+        quiet=quiet
+    )
+    if use_oaza:
+        converter.unescape_texts('oaza')
+        converters.append(converter)
+    else:
+        converter.escape_texts('oaza')
+
+    converter = GaikuConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'gaiku'),
+        output_dir=output_dir,
+        priority=3,
+        targets=targets,
+        quiet=quiet
+    )
     if use_gaiku:
-        converters.append(
-            GaikuConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'gaiku'),
-                output_dir=output_dir,
-                priority=3,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('gaiku')
+        converters.append(converter)
+    else:
+        converter.escape_texts('gaiku')
 
+    converter = GeoloniaConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'geolonia'),
+        output_dir=output_dir,
+        priority=2,
+        targets=targets,
+        quiet=quiet
+    )
     if use_geolonia:
-        converters.append(
-            GeoloniaConverter(
-                manager=manager,
-                input_dir=os.path.join(download_dir, 'geolonia'),
-                output_dir=output_dir,
-                priority=2,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('geolonia')
+        converters.append(converter)
+    else:
+        converter.escape_texts('geolonia')
 
+    converter = JushoConverter(
+        manager=manager,
+        input_dir=os.path.join(
+            download_dir, 'jusho'),
+        output_dir=output_dir,
+        priority=4,
+        targets=targets,
+        quiet=quiet
+    )
     if use_jusho:
-        converters.append(
-            JushoConverter(
-                manager=manager,
-                input_dir=os.path.join(
-                    download_dir, 'jusho'),
-                output_dir=output_dir,
-                priority=4,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('jusho')
+        converters.append(converter)
+    else:
+        converter.escape_texts('jusho')
 
+    converter = BaseRegistryConverter(
+        manager=manager,
+        input_dir=os.path.join(
+            download_dir, 'base_registry'),
+        output_dir=output_dir,
+        priority=9,
+        targets=targets,
+        quiet=quiet
+    )
     if use_basereg:
-        converters.append(
-            BaseRegistryConverter(
-                manager=manager,
-                input_dir=os.path.join(
-                    download_dir, 'base_registry'),
-                output_dir=output_dir,
-                priority=5,
-                targets=targets,
-                quiet=quiet
-            ))
+        converter.unescape_texts('basereg_town')
+        converter.unescape_texts('basereg_blk')
+        converter.unescape_texts('basereg_rsdt')
+        converters.append(converter)
+    else:
+        converter.escape_texts('basereg_town')
+        converter.escape_texts('basereg_blk')
+        converter.escape_texts('basereg_rsdt')
 
     # Confirm acceptance of terms of uses.
     for converter in converters:
         converter.confirm()
 
     # Download data
+    logger.info("データファイルをダウンロードします。")
     for converter in converters:
         converter.download_files()
 
     # Prpare PostCode table
+    logger.info("郵便番号テーブルを作成します。")
     __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Converts location reference information from various sources
     # into the text format.
-    converters[0].prepare_aza_table()
+    aza_data_dir = os.path.join(download_dir, 'base_registry')
+    converters[0].get_address_all(aza_data_dir)
+    manager.prepare_aza_table(aza_data_dir)
     for converter in converters:
+        logger.info("{} で変換処理を実行中".format(converter))
         converter.convert()
 
     # Sort data, register to the database, then create index
+    manager.write_datasets(converters)
+    logger.info("データベースファイルを作成します。")
     manager.register()
     manager.create_index()
 

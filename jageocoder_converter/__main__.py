@@ -8,8 +8,8 @@ Convert location reference information to jageocoder dictionary.
 
 Usage:
   {p} [-h]
-  {p} [-d] [-q] [--no-oaza] [--no-gaiku] [--no-geolonia] \
-      [--no-jusho] [--no-basereg] \
+  {p} [-d] [-q] [--no-geolod] [--no-oaza] [--no-gaiku] \
+      [--no-geolonia] [--no-jusho] [--no-basereg] \
       [--db-dir=<dir>] [--output-dir=<dir>] [--download-dir=<dir>] \
       [--textdata-dir=<dir>] [<prefcodes>...]
 
@@ -17,12 +17,13 @@ Options:
   -h --help       Show this help.
   -d --debug      Show debug messages.
   -q --quiet      Quiet mode. Skip confirming the terms of use.
+  --no-geolod     Don't use 歴史的行政区域データセットβ版地名辞書
   --no-oaza       Don't use 大字・町丁目レベル位置参照情報.
   --no-gaiku      Don't use 街区レベル位置参照情報.
   --no-geolonia   Don't use Geolonia 住所データ.
   --no-jusho      Don't use 電子国土基本図「住居表示住所」.
   --no-basereg    Don't use JDA Address Base Registry.
-  --db-dir=<dir>        Dictionary creation directory.
+  --db-dir=<dir>        Dictionary creation directory. [default: db]
   --output-dir=<dir>    Parent directory of download-dir and textdata-dir
                         [default: ./]
   --download-dir=<dir>  Directory to download location reference information
@@ -33,7 +34,7 @@ Options:
 
 Example:
 
-  python -m {p} convert --no-jusho --db-dir=test 11 12 13 14
+  python -m {p} --no-jusho --db-dir=test 11 12 13 14
 
   will create a dictionary under 'test' directory including
   埼玉県, 千葉県, 東京都, 神奈川県 from 大字・町丁目レベル and
@@ -43,15 +44,24 @@ Example:
 if __name__ == '__main__':
     args = docopt(HELP)
     if args['--debug']:
-        level = logging.DEBUG
+        log_level = logging.DEBUG
     else:
-        level = logging.INFO
+        log_level = logging.INFO
 
-    logging.basicConfig(
-        format='%(levelname)s:%(name)s:%(lineno)s:%(message)s',
-        level=level)
+    # Set logger
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(
+        logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
+    )
+    for target in ('jageocoder', 'jageocoder_converter',):
+        logger = logging.getLogger(target)
+        logger.setLevel(log_level)
+        logger.addHandler(console_handler)
 
+    # Set parameters
     kwargs = {
+        'use_geolod': not args['--no-geolod'],
         'use_oaza': not args['--no-oaza'],
         'use_gaiku': not args['--no-gaiku'],
         'use_geolonia': not args['--no-geolonia'],

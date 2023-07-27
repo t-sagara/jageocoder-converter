@@ -1,0 +1,145 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Build Datafiles",
+            "type": "python",
+            "request": "launch",
+            "program": "build_datafiles.py",
+            "args": [
+                "db_20230414"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Build dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-dq",
+                "--db-dir=db_jusho"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 東京都 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_tokyo",
+                "13"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 北海道 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_hokkaido",
+                "01"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 福島県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_fukushima",
+                "07"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 茨城県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_ibaraki",
+                "08"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 長野県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_nagano",
+                "20"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 大阪府/街区レベル dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_osaka",
+                "--no-jusho",
+                "--no-basereg",
+                "27"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Test Capnp records",
+            "type": "python",
+            "request": "launch",
+            "program": "test_scripts/test_capnp_manager.py",
+            "justMyCode": false
+        },
+        {
+            "name": "Test search in 北海道",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--db-dir=./db_hokkaido",
+                "北区北8西5"
+            ]
+        },
+        {
+            "name": "Test base_registry only dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-dq",
+                "--no-geolod",
+                "--no-oaza",
+                "--no-gaiku",
+                "--no-geolonia",
+                "--no-jusho",
+                "--db-dir=./db_basereg"
+            ]
+        }
+    ]
+}

@@ -3,10 +3,11 @@ import glob
 import io
 from logging import getLogger
 import os
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 import zipfile
 
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 
 logger = getLogger(__name__)
 
@@ -18,14 +19,16 @@ class OazaConverter(BaseConverter):
 
     Output 'output/xx_oaza.txt' for each prefecture.
     """
+    dataset_name = "大字・町丁目レベル位置参照情報"
+    dataset_url = "https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
@@ -43,14 +46,14 @@ class OazaConverter(BaseConverter):
         )
         return super().confirm(terms)
 
-    def download_files(self) -> NoReturn:
+    def download_files(self) -> None:
         """
         Download zipped data files from
         '位置参照情報ダウンロードサービス'
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '14.0b'  # PY2020, 令和2年度
+        version = '16.0b'  # PY2022, 令和4年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -74,6 +77,7 @@ class OazaConverter(BaseConverter):
 
         note = None
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
+        ccode = ("00000" + ccode)[-5:]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)
         azacode = self.code_from_names(address)
@@ -96,13 +100,26 @@ class OazaConverter(BaseConverter):
                     ft = io.TextIOWrapper(
                         f, encoding='CP932', newline='',
                         errors='backslashreplace')
-                    reader = csv.reader(ft)
+                    reader = csv.DictReader(ft)
                     logger.debug('Processing {} in {}...'.format(
                         filename, zipfilepath))
                     try:
-                        for args in reader:
+                        for row in reader:
+                            args = [
+                                row['都道府県コード'],
+                                row['都道府県名'],
+                                row['市区町村コード'],
+                                row['市区町村名'],
+                                row['大字町丁目コード'],
+                                row['大字町丁目名'],
+                                row['緯度'],
+                                row['経度'],
+                                row['原典資料コード'],
+                                row['大字・字・丁目区分コード'],
+                            ]
                             self.process_line(args)
                             pre_args = args
+
                     except UnicodeDecodeError:
                         raise RuntimeError((
                             "変換できない文字が見つかりました。"

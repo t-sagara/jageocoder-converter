@@ -1,17 +1,14 @@
 import copy
 import csv
-import io
-import json
 from logging import getLogger
 import os
-import time
-from typing import Union, NoReturn, Optional, List
-import urllib.parse
-import urllib.request
+import tempfile
+from typing import Union, Optional, List
 import zipfile
 
 from jageocoder.address import AddressLevel
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 from pyproj import Transformer
 
 logger = getLogger(__name__)
@@ -24,20 +21,23 @@ class BaseRegistryConverter(BaseConverter):
 
     Output 'output/xx_base_registry.txt' for each prefecture. ?
     """
+    dataset_name = "アドレス・ベース・レジストリ"
+    dataset_url = "https://catalog.registries.digital.go.jp/rc/"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
         self.blocks = None
+        self._processed_azaid = None
 
     def confirm(self) -> bool:
         """
@@ -49,6 +49,63 @@ class BaseRegistryConverter(BaseConverter):
             "利用規約を必ず確認してください。\n"
         )
         return super().confirm(terms)
+
+    def process_lines_01(self, fin, pref_code):
+        """
+        Parse lines and output address nodes in 'mt_town_all.csv'.
+
+        全国地方公共団体コード,
+        町字id,
+        町字区分コード,
+        都道府県名,
+        都道府県名_カナ,
+        都道府県名_英字,
+        郡名,
+        郡名_カナ,
+        郡名_英字,
+        市区町村名,
+        市区町村名_カナ,
+        市区町村名_英字,
+        政令市区名,
+        政令市区名_カナ,
+        政令市区名_英字,
+        大字・町名,
+        大字・町名_カナ,
+        大字・町名_英字,
+        丁目名,
+        丁目名_カナ,
+        丁目名_数字,
+        小字名,
+        小字名_カナ,
+        小字名_英字,
+        住居表示フラグ,
+        住居表示方式コード,
+        大字・町名_通称フラグ,
+        小字名_通称フラグ,
+        大字・町名_電子国土基本図外字,
+        小字名_電子国土基本図外字,
+        状態フラグ,
+        起番フラグ,
+        効力発生日,
+        廃止日,
+        原典資料コード,
+        郵便番号,
+        備考
+        """
+        reader = csv.DictReader(fin)
+        for row in reader:
+            citycode = row["全国地方公共団体コード"][0:5]
+            if citycode[0:2] != pref_code:
+                continue
+
+            aza_id = row["町字id"]
+            if aza_id in self._processed_azaid:
+                continue
+
+            names = self.names_from_code(citycode + aza_id)
+            x, y = 999.9, 999.9
+            note = 'aza_id:{}'.format(aza_id)
+            self.print_line_with_postcode(names, x, y, note)
 
     def process_lines_06(self, fin):
         """
@@ -76,6 +133,11 @@ class BaseRegistryConverter(BaseConverter):
             citycode = row["全国地方公共団体コード"][0:5]
             aza_id = row["町字id"]
             names = self.names_from_code(citycode + aza_id)
+            if names is None:
+                logger.warning("Aza_code '{} {}' is not found. (Skipped)".format(
+                    citycode, aza_id))
+                continue
+
             x, y = row["代表点_経度"], row["代表点_緯度"]
             note = 'aza_id:{}'.format(aza_id)
             if not x or not y:
@@ -83,6 +145,7 @@ class BaseRegistryConverter(BaseConverter):
                     "x or y is empty. citycode={}, aza_id={}".format(
                         citycode, aza_id))
 
+            self._processed_azaid.add(aza_id)
             self.print_line_with_postcode(names, x, y, note)
 
     def process_lines_07(self, fin):
@@ -184,12 +247,12 @@ class BaseRegistryConverter(BaseConverter):
                     max_code_in_pool = pos_building_code
 
             if building_code not in pos_pool:
-                msg = "No location data for rsdt '{}'".format(",".join(
+                msg = "No coodinates for rsdt '{}'".format(",".join(
                     [row[k] for k in (
                         "市区町村名", "政令市区名", "大字・町名", "丁目名",
                         "小字名", "街区符号", "住居番号", "住居番号2")]))
                 logger.warning(msg)
-                x, y = 999, 999
+                x, y = 999.9, 999.9
             else:
                 pos_row = pos_pool[building_code]
                 if crs is None:
@@ -236,60 +299,90 @@ class BaseRegistryConverter(BaseConverter):
 
     def convert(self):
         """
-        Read records from 'geolonia/latest.csv' file, format them,
-        then output to 'output/xx_geolonia.txt'.
+        Read records from 'mt_town_pos_prefxx.csv' file, format them,
+        then output to 'text/xx_basereg_town.txt'.
         """
         self.prepare_jiscode_table()
 
         for pref_code in self.targets:
             # 町字マスター
             output_filepath = os.path.join(
-                self.output_dir, '{}_basereg_town.txt'.format(pref_code))
+                self.output_dir, f"{pref_code}_basereg_town.txt")
             if os.path.exists(output_filepath):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath = os.path.join(
-                    self.input_dir,
-                    'mt_town_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                        self.open_csv_in_zipfile(input_filepath) as fin:
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_town_pos_all.csv.zip')
+                filename = f"mt_town_pos_pref{pref_code}.csv.zip"
+
+                self._processed_azaid = set()
+                with tempfile.NamedTemporaryFile("w+b") as nt:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                            self.manager.open_csv_in_zipfile(nt.name) as fin:
+                        self.fp = fout
+                        self.process_lines_06(fin)
+
+                zip_filename = os.path.join(
+                    self.input_dir, "mt_town_all.csv.zip")
+
+                with open(output_filepath, 'a', encoding='utf-8') as fout, \
+                        self.manager.open_csv_in_zipfile(zip_filename) as fin:
                     self.fp = fout
-                    self.process_lines_06(fin)
+                    self.process_lines_01(fin, pref_code)
 
             # 住居表示－街区マスター位置参照拡張
             output_filepath = os.path.join(
-                self.output_dir, '{}_basereg_blk.txt'.format(pref_code))
+                self.output_dir, f'{pref_code}_basereg_blk.txt')
             output_filepath_rsdt = os.path.join(
-                self.output_dir, '{}_basereg_rsdt.txt'.format(pref_code))
+                self.output_dir, f'{pref_code}_basereg_rsdt.txt')
             if os.path.exists(output_filepath) and \
                     os.path.exists(output_filepath_rsdt):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath_pos = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_blk_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(output_filepath, 'w', encoding='utf-8') as fout, \
-                        self.open_csv_in_zipfile(input_filepath_pos) as fin:
-                    self.fp = fout
-                    self.process_lines_07(fin)
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_blk_pos_all.csv.zip')
+                filename = f'mt_rsdtdsp_blk_pos_pref{pref_code}.csv.zip'
+                with tempfile.NamedTemporaryFile("w+b") as nt:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                            self.manager.open_csv_in_zipfile(nt.name) as fin:
+                        self.fp = fout
+                        self.process_lines_07(fin)
 
             # 住居表示・住居マスター，位置参照拡張
             if os.path.exists(output_filepath_rsdt):
-                logger.info("SKIP: {}".format(output_filepath))
+                logger.info(f"SKIP: {output_filepath}")
             else:
-                input_filepath = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_rsdt_pref{:s}.csv.zip'.format(pref_code))
-                input_filepath_pos = os.path.join(
-                    self.input_dir,
-                    'mt_rsdtdsp_rsdt_pos_pref{:s}.csv.zip'.format(pref_code))
-                with open(
-                        output_filepath_rsdt, "w", encoding='utf-8') as fout,\
-                        self.open_csv_in_zipfile(input_filepath) as fin,\
-                        self.open_csv_in_zipfile(
-                            input_filepath_pos) as fin_pos:
-                    self.fp = fout
-                    self.process_lines_0508(fin, fin_pos)
+                all_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_rsdt_all.csv.zip')
+                all_pos_zip = os.path.join(
+                    self.input_dir, 'mt_rsdtdsp_rsdt_pos_all.csv.zip')
+                filename = f'mt_rsdtdsp_rsdt_pref{pref_code}.csv.zip'
+                filename_pos = f'mt_rsdtdsp_rsdt_pos_pref{pref_code}.csv.zip'
+                with tempfile.NamedTemporaryFile("w+b") as nt, \
+                        tempfile.NamedTemporaryFile("w+b") as nt_pos:
+                    with zipfile.ZipFile(all_zip) as z:
+                        with z.open(filename, mode='r') as f:
+                            nt.write(f.read())
+
+                    with zipfile.ZipFile(all_pos_zip) as z:
+                        with z.open(filename_pos, mode='r') as f:
+                            nt_pos.write(f.read())
+
+                    with open(
+                            output_filepath_rsdt, "w",
+                            encoding='utf-8') as fout,\
+                            self.manager.open_csv_in_zipfile(nt.name) as fin,\
+                            self.manager.open_csv_in_zipfile(nt_pos.name) as fin_pos:
+                        self.fp = fout
+                        self.process_lines_0508(fin, fin_pos)
 
     def _local_authority_code(self, orig_code: str) -> str:
         """
@@ -310,88 +403,33 @@ class BaseRegistryConverter(BaseConverter):
 
         return orig_code + checkdigit
 
-    def download_files(self) -> NoReturn:
+    def download_files(self) -> None:
         """
-        Download separated data files from
-        'Base Registry Data Catalog Site'
-        https://registry-catalog.registries.digital.go.jp/
-        ex. https://registry-catalog.registries.digital.go.jp/-
-            api/3/action/package_show?id=o1-130001_g2-000006
+        Now all address-base data files are zipped in one file.
+        The file should be already downloaded by
+        BaseConverter.get_address_all(), but confirm here.
         """
-        api_url = (
-            'https://registry-catalog.registries.digital.go.jp/'
-            'api/3/action/')
-        dataset_id_list = []
-        download_urls = []
-
-        # Add the following dataset of each prefecture
-        # x 0000004: 住居表示・街区マスター
+        # 0000004: 住居表示・街区マスター
         # 0000005: 住居表示・住居マスター
         # 0000006: 町字マスター位置参照拡張
         # 0000007: 住居表示－街区マスター位置参照拡張
         # 0000008: 住居表示－住居マスター位置参照拡張
-        for pref_code in self.targets:
-            input_filepath = os.path.join(
-                self.input_dir,
-                'mt_town_pos_pref{:s}.csv.zip'.format(pref_code))
-            if os.path.exists(input_filepath):
-                continue
-
-            pref_local_code = self._local_authority_code(pref_code + '000')
-            for dataset_code in (5, 6, 7, 8):
-                dataset_id_list.append('o1-{:s}_g2-{:06d}'.format(
-                    pref_local_code, dataset_code))
-
-        for dataset_id in dataset_id_list:
-            url = api_url + 'package_show?id={}'.format(dataset_id)
-            logger.debug(
-                "Getting metadata of package '{}'".format(dataset_id))
-            with urllib.request.urlopen(url) as response:
-                rawdata = response.read()
-                result = json.loads(rawdata)
-                metadata = result['result']
-                download_url = self.dataurl_from_metadata(
-                    metadata, self.input_dir)
-                if download_url is not None:
-                    logger.debug(
-                        "  {} is added to download list.".format(
-                            download_url))
-                    download_urls.append(download_url)
-
-            time.sleep(1)
-
-        """
-        # Download list of "位置参照拡張"
-        count = 0
-        query_url = "{}package_search?q={}&sort=id+asc".format(
-            api_url, urllib.parse.quote(
-                '"位置参照拡張" or "住居表示・住居マスター"'))
-        url = "{}&rows=0".format(query_url)  # Get number of packages
-        logger.debug("Get record count from {}".format(url))
-        with urllib.request.urlopen(url) as response:
-            result = json.loads(response.read())
-            count = result['result']['count']
-            logger.debug("Found {} datasets.".format(count))
-
-        for start in range(0, count, 100):
-            url = "{}&rows=100&start={}".format(
-                query_url, start)  # Get 100 packages
-            logger.debug("Get 100 records from {}".format(url))
-            with urllib.request.urlopen(url) as response:
-                result = json.loads(response.read())
-                for metadata in result['result']['results']:
-                    download_url = self.dataurl_from_metadata(metadata)
-                    if download_url is not None:
-                        logger.debug(
-                            "  {} is added to download list.".format(
-                                download_url))
-                        download_urls.append(download_url)
-
-            time.sleep(1)
-        """
-
-        # Download data files in the list
-        self.download(
-            urls=download_urls,
-            dirname=self.input_dir
+        targets = (
+            'mt_city_all.csv.zip',
+            'mt_pref_all.csv.zip',
+            'mt_rsdtdsp_blk_all.csv.zip',
+            'mt_rsdtdsp_blk_pos_all.csv.zip',
+            'mt_rsdtdsp_rsdt_all.csv.zip',
+            'mt_rsdtdsp_rsdt_pos_all.csv.zip',
+            'mt_town_all.csv.zip',
+            'mt_town_pos_all.csv.zip',
         )
+        not_found_files = []
+        for target in targets:
+            zipfilepath = os.path.join(self.input_dir, target)
+            if not os.path.exists(zipfilepath):
+                not_found_files.append(target)
+
+        # Download data files if the targets are missed.
+        if len(not_found_files) > 0:
+            self.get_address_all(self.input_dir)

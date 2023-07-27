@@ -8,7 +8,7 @@ For more detailed information, please refer to
 
 ### Prerequisites
 
-Requires Python 3.6.x or later.
+Requires Python 3.7 or later.
 
 ### Installing
 
@@ -27,10 +27,10 @@ Show help with the following command.
 python -m jageocoder_converter -h
 ``` 
 
-To create a dictionary, specify the `convert` command.
+To create a dictionary, run the following command.
 
 ```sh
-python -m jageocoder_converter convert
+python -m jageocoder_converter
 ```
 
 During the process, it downloads the location reference information
@@ -44,13 +44,13 @@ To create a dictionary, including only 東京都,
 without records from 住居表示住所, run the following command.
 
 ```sh
-python -m jageocoder_converter convert --no-jusho 13
+python -m jageocoder_converter --no-jusho 13
 ```
 
 You may create a dictionary in the specified directory.
 
 ```sh
-python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
+python -m jageocoder_converter --db-dir=oazadb --no-gaiku --no-jusho
 ```
 
 If you already understand the terms of use, etc., and want to process it
@@ -58,7 +58,7 @@ in the background, you can specify the quiet option. It may be useful
 to add a debug option to check the progress in the log file.
 
 ```sh
-nohup python -m jageocoder_converter convert --quiet --debug &
+nohup python -m jageocoder_converter --quiet --debug &
 ```
 
 ## Authors

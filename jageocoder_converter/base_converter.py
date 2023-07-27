@@ -1,23 +1,22 @@
-from contextlib import contextmanager
 import csv
 import datetime
 from functools import lru_cache
-import io
+import glob
 import json
 import logging
 import os
 import re
 import sys
 import time
-from typing import TextIO, Union, Optional, NoReturn, List, Tuple
+from typing import TextIO, Union, Optional, List, Tuple
 import zipfile
 
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
-from sqlalchemy import Index
 import urllib.request
 
+from jageocoder_converter.data_manager import DataManager
 import jageocoder_converter.config
 
 Address = Tuple[int, str]  # Address element level and element name
@@ -60,9 +59,12 @@ class BaseConverter(object):
     azacodes = {}
     azacode_from_name = {}
 
+    dataset_name = ""
+    dataset_url = ""
+
     def __init__(
             self, fp: Optional[TextIO] = None,
-            manager: Optional["DataManager"] = None,
+            manager: Optional[DataManager] = None,
             priority: Optional[int] = None,
             targets: Optional[List[str]] = None,
             quiet: Optional[bool] = False,
@@ -199,95 +201,42 @@ class BaseConverter(object):
                 print(json.dumps(
                     {jiscode: args[0]}, ensure_ascii=False), file=f)
 
-    @contextmanager
-    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
+    def get_address_all(self, download_dir) -> None:
         """
-        Get file pointer to the first csv file in the zipfile.
-
-        Parameters
-        ----------
-        zipfilepath: PathLike
-            Path to the target zipfile.
+        Download "address_all.csv.zip" and extract
+        to the specified directory.
         """
-        try:
-            with zipfile.ZipFile(zipfilepath) as z:
-                csvfile = None
-                for filename in z.namelist():
-                    if filename.lower().endswith('.csv'):
-                        csvfile = filename
-                        break
-
-                if csvfile is None:
-                    raise RuntimeError("No csv file is found in the zipfile.")
-
-                with z.open(csvfile, mode='r') as f:
-                    ft = io.TextIOWrapper(
-                        f, encoding='utf-8', newline='',
-                        errors='backslashreplace')
-                    logger.debug("Opening csvfile {} in zipfile {}.".format(
-                        csvfile, zipfilepath))
-                    yield ft
-
-        finally:
-            logger.debug("Zipfile has been closed.")
-
-    def prepare_aza_table(self):
-        """
-        Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
-        """
-        logger.debug("Creating aza_master table...")
-        data_dir = jageocoder_converter.config.base_download_dir
-        zipfilepath = os.path.join(data_dir, 'mt_town_all.csv.zip')
-        if not os.path.exists(zipfilepath):
+        target = os.path.join(download_dir, "address_all.csv.zip")
+        if not os.path.exists(target):
             api_url = (
-                'https://registry-catalog.registries.digital.go.jp/'
+                'https://catalog.registries.digital.go.jp/rc/'
                 'api/3/action/')
-            dataset_id = 'o1-000000_g2-000003'
+            dataset_id = 'ba000001'
             url = api_url + 'package_show?id={}'.format(dataset_id)
             logger.debug("Getting metadata of package '{}'".format(dataset_id))
             download_url = None
             with urllib.request.urlopen(url) as response:
                 result = json.loads(response.read())
                 metadata = result['result']
-                download_url = self.dataurl_from_metadata(metadata, data_dir)
+                download_url = self.dataurl_from_metadata(
+                    metadata, download_dir)
 
-            self.download(urls=[download_url], dirname=data_dir)
+            self.download(urls=[download_url], dirname=download_dir)
 
-        with self.open_csv_in_zipfile(zipfilepath) as ft:
-            reader = csv.DictReader(ft)
-            n = 0
-            aza_codes = {}
-            for row in reader:
-                if row["全国地方公共団体コード"][0:2] not in self.targets:
+        # Extract "address_all_csv.zip"
+        with zipfile.ZipFile(target) as z:
+            for filename in z.namelist():
+                if not filename.lower().endswith('.zip'):
                     continue
 
-                names = AzaMaster.get_names_from_csvrow(row)
-                for pos in range(len(names) - 1):
-                    if names[pos][4] not in aza_codes:
-                        subnames = names[0:pos + 1]
-                        record = AzaMaster(**{
-                            "code": names[pos][4],
-                            "names": json.dumps(subnames, ensure_ascii=False),
-                            "names_index": AzaMaster.standardize_aza_name(subnames),
-                        })
-                        aza_codes[record.code] = True
-                        self.manager.session.add(record)
+                target = os.path.join(
+                    download_dir,
+                    os.path.basename(filename))
+                with open(target, mode="w+b") as fout:
+                    with z.open(filename, mode='r') as fin:
+                        fout.write(fin.read())
 
-                record = AzaMaster.from_csvrow(row)
-                if record.code not in aza_codes:
-                    aza_codes[record.code] = True
-                    self.manager.session.add(record)
-
-                n += 1
-                if n % 10000 == 0:
-                    logger.debug("  read {} records.".format(n))
-                    self.manager.session.commit()
-
-        self.manager.session.commit()
-        logger.debug("  Creating index on aza_master.names_index...")
-        aza_master_names_index = Index(
-            'ix_aza_master_names_index', AzaMaster.names_index)
-        aza_master_names_index.create(self.manager.engine)
+                    logger.debug("Extracted {}.".format(target))
 
     def dataurl_from_metadata(
             self,
@@ -317,15 +266,11 @@ class BaseConverter(object):
             '2000-01-01T00:00')
         modified_at = datetime.datetime.fromisoformat(
             '2000-01-01T00:00')
-        for extra in metadata['extras']:
-            if extra["key"].endswith('dct:issued'):
-                issued_at = datetime.datetime.fromisoformat(
-                    extra["value"])
-            if extra["key"].endswith('dct:modified'):
-                modified_at = datetime.datetime.fromisoformat(
-                    extra["value"])
-            elif extra["key"].endswith('dcat:accessURL'):
-                url = extra["value"]
+        for resource in metadata['resources']:
+            issued_at = resource["created"]
+            modified_at = resource["metadata_modified"]
+            url = resource["url"]
+            if resource["format"].lower().startswith("csv"):
                 basename = os.path.basename(url)
                 filepath = os.path.join(data_dir, basename)
                 if not os.path.exists(filepath) or \
@@ -364,7 +309,7 @@ class BaseConverter(object):
         return True
 
     def download(self, urls: List[str],
-                 dirname: Union[str, bytes, os.PathLike]) -> NoReturn:
+                 dirname: Union[str, bytes, os.PathLike]) -> None:
         """
         Download files from web specified by urls and save them under dirname.
 
@@ -381,6 +326,7 @@ class BaseConverter(object):
         for url in urls:
             basename = os.path.basename(url)
             filename = os.path.join(dirname, basename)
+
             if os.path.exists(filename):
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
@@ -392,7 +338,7 @@ class BaseConverter(object):
             local_filename, headers = urllib.request.urlretrieve(url, filename)
             time.sleep(5)
 
-    def set_fp(self, fp: Union[TextIO, None]) -> NoReturn:
+    def set_fp(self, fp: Union[TextIO, None]) -> None:
         """
         Set (or change if already set) the output stream.
 
@@ -442,11 +388,13 @@ class BaseConverter(object):
         str
             azacode or None.
         """
-        aza_row = AzaMaster.search_by_names(elements, self.manager.session)
-        if aza_row:
-            return aza_row.code
+        key = AzaMaster.standardize_aza_name(elements)
+        cands = self.manager.aza_master.search_records_on(
+            "names", key)
+        if len(cands) == 0:
+            return None
 
-        return None
+        return cands[0].code
 
     def names_from_code(
             self,
@@ -464,14 +412,15 @@ class BaseConverter(object):
         List[str], None
             List of address elements if the code exists, or None.
         """
-        aza_row = AzaMaster.search_by_code(code, self.manager.session)
-        if aza_row:
-            return json.loads(aza_row.names)
+        cands = self.manager.aza_master.search_records_on(
+            "code", code)
+        if len(cands) == 0:
+            return None
 
-        return None
+        return json.loads(cands[0].names)
 
     def print_line(self, names: List[Address], x: float, y: float,
-                   note: Optional[str] = None) -> NoReturn:
+                   note: Optional[str] = None) -> None:
         """
         Outputs a single line of information.
         If the instance variable priority is set,
@@ -488,15 +437,25 @@ class BaseConverter(object):
         note: str, optional
             Notes (used to add codes, identifiers, etc.)
         """
-        line = ''
+        # keys = []
+        # for name in names:
+        #     if name[1] == '':
+        #         continue
+
+        #     keys.append(
+        #         itaiji_converter.standardize(name[1]) + ";{}".format(name[0]))
+
+        # line = " ".join(keys) + "\t"
+        line = ""
+
         for name in names:
             if name[1] != '':
-                line += '{:d};{:s},'.format(*name)
+                line += '{:s};{:d},'.format(name[1], name[0])
 
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)
 
-        line += "{},{}".format(x, y)
+        line += "{},{}".format(x or 999, y or 999)
         if note is not None:
             line += ',{}'.format(str(note))
 
@@ -504,7 +463,7 @@ class BaseConverter(object):
 
     def print_line_with_postcode(
             self, names: List[Address], x: float, y: float,
-            note: Optional[str] = None) -> NoReturn:
+            note: Optional[str] = None) -> None:
         """
         Outputs a single line of information with postcode.
 
@@ -628,7 +587,9 @@ class BaseConverter(object):
         if not ignore_aza:
             m = re.match(r'^(.+?[^文大])((字|小字).*)$', name)
             if m:
-                return [[AddressLevel.OAZA, m.group(1)], [6, m.group(2)]]
+                return [
+                    [AddressLevel.OAZA, m.group(1)],
+                    [AddressLevel.AZA, m.group(2)]]
 
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西|南|北)?)$', name)
@@ -732,7 +693,7 @@ class BaseConverter(object):
         >>> base.guessAza('北十一条西十三丁目')
         [[5, '北十一条'], [6, '西十三丁目']]
         """
-        name = re.sub(r'[　\s+]', '', name)
+        name = re.sub(r'[\u3000\s]+', '', name)
 
         if name[0] == '字':
             # Remove the leading '字'
@@ -813,3 +774,31 @@ class BaseConverter(object):
 
         result = self._guessAza_sub(name)
         return result
+
+    def escape_texts(self, pattern: str):
+        """
+        Excape output text files generated by previous execution.
+
+        Parameters
+        ----------
+        pattern: str
+            Text file patter, such as 'city', 'oaza', etc.
+        """
+        for filepath in glob.glob(
+                os.path.join(self.output_dir, f"*_{pattern}.txt")):
+            if os.path.exists(filepath):
+                os.rename(filepath, filepath + '.bak')
+
+    def unescape_texts(self, pattern: str):
+        """
+        Recover xcaped output text files.
+
+        Parameters
+        ----------
+        pattern: str
+            Text file patter, such as 'city', 'oaza', etc.
+        """
+        for filepath in glob.glob(
+                os.path.join(self.output_dir, f"*_{pattern}.txt.bak")):
+            if os.path.exists(filepath):
+                os.rename(filepath, filepath[0:-4])

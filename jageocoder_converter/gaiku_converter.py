@@ -4,12 +4,13 @@ import io
 from logging import getLogger
 import os
 import re
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 import zipfile
 
 import jaconv
 from jageocoder.address import AddressLevel
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 
 logger = getLogger(__name__)
 
@@ -21,16 +22,17 @@ class GaikuConverter(BaseConverter):
 
     Output 'output/xx_city.txt' for each prefecture.
     """
-
+    dataset_name = "街区レベル位置参照情報"
+    dataset_url = "https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi"
     re_hugou = re.compile(r'^([^\d]*)(\d*[A-Z]?号?)([^\d]*)')
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
@@ -55,7 +57,7 @@ class GaikuConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '19.0a'  # PY2020, 令和2年度
+        version = '21.0a'  # PY2022, 令和4年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -73,6 +75,10 @@ class GaikuConverter(BaseConverter):
         """
         if args[0] == '都道府県名' or args[2] == '' or args[11] == '0':
             # Skip line with blank Aza-names and non-representative points
+            return
+
+        if '.' in args[4]:
+            # 街区符号・地番に小数点を含む場合はエラーとして無視
             return
 
         """
@@ -128,15 +134,17 @@ class GaikuConverter(BaseConverter):
         if args[2] != '' and args[2] != '（大字なし）':
             names += self.guessAza(args[2], jcode)
 
-        if args[3] != '':
+        if args[3] != '' and args[3] != ' ':
             names.append([AddressLevel.AZA, args[3]])
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
         if args[10] == '1':
             # 住居表示地域
-            if hugou[-1] >= '0' and hugou[-1] <= '9':
+            if hugou[-1] in '0123456789ABCabc':
+                # 大阪市中央区上町の A番-C番 対応
                 names.append([AddressLevel.BLOCK, hugou + '番'])
             else:
+                # 「渡辺」対応
                 logger.debug("Non-numeric hugou '{}' in {}".format(
                     hugou, ','.join(args)))
                 names.append([AddressLevel.BLOCK, hugou])
@@ -156,8 +164,8 @@ class GaikuConverter(BaseConverter):
                     names.append([AddressLevel.BLOCK, chiban + '番地'])
                 else:
                     # 脱落地
-                    logger.debug("Datsurakuchi '{}' in {}".format(
-                        hugou, ','.join(args)))
+                    # logger.debug("Datsurakuchi '{}' in {}".format(
+                    #     hugou, ','.join(args)))
                     if chiban[-1] == '号':
                         names.append([AddressLevel.BLOCK, chiban])
                     else:
@@ -180,14 +188,31 @@ class GaikuConverter(BaseConverter):
                     ft = io.TextIOWrapper(
                         f, encoding='CP932', newline='',
                         errors='backslashreplace')
-                    reader = csv.reader(ft)
+                    reader = csv.DictReader(ft)
                     pre_args = None
                     logger.debug('Processing {} in {}...'.format(
                         filename, zipfilepath))
                     try:
-                        for args in reader:
+                        for row in reader:
+                            args = [
+                                row['都道府県名'],
+                                row['市区町村名'],
+                                row['大字・丁目名'],
+                                row['小字・通称名'],
+                                row['街区符号・地番'],
+                                row['座標系番号'],
+                                row['Ｘ座標'],
+                                row['Ｙ座標'],
+                                row['緯度'],
+                                row['経度'],
+                                row['住居表示フラグ'],
+                                row['代表フラグ'],
+                                row['更新前履歴フラグ'],
+                                row['更新後履歴フラグ'],
+                            ]
                             self.process_line(args)
                             pre_args = args
+
                     except UnicodeDecodeError:
                         raise RuntimeError((
                             "変換できない文字が見つかりました。"

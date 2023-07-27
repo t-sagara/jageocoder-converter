@@ -4,7 +4,7 @@ import io
 from logging import getLogger
 import os
 import re
-from typing import Union, NoReturn, Optional, List
+from typing import Union, Optional, List
 import urllib.request
 import zipfile
 
@@ -12,6 +12,7 @@ import jaconv
 from jageocoder.address import AddressLevel
 
 from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.data_manager import DataManager
 
 logger = getLogger(__name__)
 
@@ -23,14 +24,16 @@ class JushoConverter(BaseConverter):
 
     Output 'output/xx_jusho.txt' for each prefecture.
     """
+    dataset_name = "電子国土基本図（地名情報）「住居表示住所」"
+    dataset_url = "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
 
     def __init__(self,
                  output_dir: Union[str, bytes, os.PathLike],
                  input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional["DataManager"] = None,
+                 manager: Optional[DataManager] = None,
                  priority: Optional[int] = None,
                  targets: Optional[List[str]] = None,
-                 quiet: Optional[bool] = False) -> NoReturn:
+                 quiet: Optional[bool] = False) -> None:
         super().__init__(
             manager=manager, priority=priority, targets=targets, quiet=quiet)
         self.output_dir = output_dir
@@ -53,8 +56,9 @@ class JushoConverter(BaseConverter):
         """
         Parse a line and add an address node.
         """
-        if len(args) > 9:
-            raise RuntimeError("Invalid line: {}".format(args))
+        if len(args) != 9:
+            logger.warning("Invalid line: {}. (Skipped)".format(args))
+            return
 
         jcode, aza, gaiku, kiso, code, dummy, lon, lat, scale = args
         uppers = self.jiscodes[jcode]
@@ -83,7 +87,7 @@ class JushoConverter(BaseConverter):
 
                 with z.open(filename, mode='r') as f:
                     ft = io.TextIOWrapper(
-                        f, encoding='CP932', newline='',
+                        f, encoding='utf-8', newline='',
                         errors='backslashreplace')
                     reader = csv.reader(ft)
                     pre_args = None
@@ -120,6 +124,8 @@ class JushoConverter(BaseConverter):
                                  '{}???.zip'.format(pref_code)))
                 if len(zipfiles) == 0:
                     self.download_files()
+
+                zipfiles.sort()
 
             with open(output_filepath, 'w', encoding='utf-8') as fout:
                 self.set_fp(fout)
