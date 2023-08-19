@@ -155,6 +155,9 @@ class DataManager(object):
                 os.path.join(self.text_dir, prefcode + '_*.txt')):
             with open(filename, mode='r') as fb_in:
                 for line in fb_in:
+                    if line[0] == '#':  # Skip as comment
+                        continue
+
                     names = self.re_name_level.findall(line)
                     newline = " ".join([
                         itaiji_converter.standardize(x[0]) + f";{x[1]}"

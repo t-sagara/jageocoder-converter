@@ -2,7 +2,7 @@ from logging import getLogger
 import os
 from typing import Optional, List, Union
 
-__version__ = '2.0.2'
+__version__ = '2.0.3'
 
 import jageocoder
 import jageocoder_converter.config
@@ -13,6 +13,7 @@ from jageocoder_converter.gaiku_converter import GaikuConverter
 from jageocoder_converter.geolonia_converter import GeoloniaConverter
 from jageocoder_converter.jusho_converter import JushoConverter
 from jageocoder_converter.base_registry import BaseRegistryConverter
+from jageocoder_converter.chiban_converter import ChibanConverter
 from jageocoder_converter.data_manager import DataManager
 from jageocoder_converter.postcoder import PostCoder
 
@@ -51,6 +52,7 @@ def convert(
     use_geolonia: bool = True,
     use_jusho: bool = True,
     use_basereg: bool = True,
+    use_chiban: bool = True,
     db_dir: Optional[PathLike] = None,
     download_dir: Optional[PathLike] = None,
     textdata_dir: Optional[PathLike] = None,
@@ -166,6 +168,20 @@ def convert(
         converter.escape_texts('basereg_town')
         converter.escape_texts('basereg_blk')
         converter.escape_texts('basereg_rsdt')
+
+    converter = ChibanConverter(
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'chiban'),
+        output_dir=output_dir,
+        priority=7,
+        targets=targets,
+        quiet=quiet
+    )
+    if use_chiban:
+        converter.unescape_texts('chiban')
+        converters.append(converter)
+    else:
+        converter.escape_texts('chiban')
 
     # Confirm acceptance of terms of uses.
     for converter in converters:

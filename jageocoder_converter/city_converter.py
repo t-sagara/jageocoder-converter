@@ -213,7 +213,6 @@ class CityConverter(BaseConverter):
                 )
                 registered.add(key)
 
-
         with open(self.get_jiscode_json_path(), 'w', encoding='utf-8') as f:
             for jiscode, args in jiscodes.items():
                 print(json.dumps(

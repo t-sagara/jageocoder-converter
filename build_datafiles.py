@@ -37,6 +37,7 @@ def build_gaiku(base_db_dir: Path, targets: List[Union[str, None]]):
                 use_gaiku=True,
                 use_geolonia=True,
                 use_jusho=False,
+                use_chiban=False,
                 use_basereg=False,
                 db_dir=db_dir,
                 download_dir=None,
@@ -73,6 +74,7 @@ def build_jukyo(base_db_dir: Path, targets: List[Union[str, None]]):
                 use_gaiku=True,
                 use_geolonia=True,
                 use_jusho=True,
+                use_chiban=True,
                 use_basereg=True,
                 db_dir=db_dir,
                 download_dir=None,
@@ -238,7 +240,7 @@ def filelist_html(base_db_dir: Path) -> str:
 if __name__ == "__main__":
     # Set logger
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(
         logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
     )
