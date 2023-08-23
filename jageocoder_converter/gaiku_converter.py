@@ -131,7 +131,9 @@ class GaikuConverter(BaseConverter):
                 self.print_line(uppers + names, x, y)
                 return
 
-        if args[2] != '' and args[2] != '（大字なし）':
+        if args[2] in ('', '（大字なし）'):
+            names.append([AddressLevel.OAZA, 'NONAME'])
+        else:
             names += self.guessAza(args[2], jcode)
 
         if args[3] != '' and args[3] != ' ':

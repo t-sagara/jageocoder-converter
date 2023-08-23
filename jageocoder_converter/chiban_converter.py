@@ -77,6 +77,8 @@ class ChibanConverter(BaseConverter):
                 names = self.jiscodes[row[0]][:]  # 市町村c
                 if row[1]:  # 大字名
                     names.append([AddressLevel.OAZA, row[1]])
+                else:  # 大字なし
+                    names.append([AddressLevel.OAZA, 'NONAME'])
 
                 if row[2]:  # 丁目名
                     names.append([AddressLevel.AZA, row[2]])
