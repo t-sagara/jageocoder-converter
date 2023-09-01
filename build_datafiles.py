@@ -258,7 +258,8 @@ if __name__ == "__main__":
 
     all_prefs = ["{:02d}".format(x) for x in range(1, 48)] + [None]
     build_gaiku(base_db_dir, targets=[None])
-    build_jukyo(base_db_dir, targets=all_prefs)
+    # build_jukyo(base_db_dir, targets=all_prefs)
+    build_jukyo(base_db_dir, targets=[None])
     create_zipfiles(base_db_dir)
 
     v1_dir = base_db_dir / "v1"
