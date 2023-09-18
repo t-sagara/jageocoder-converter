@@ -6,6 +6,9 @@ import os
 from typing import Union, Optional, List
 import zipfile
 
+from jageocoder.node import AddressNode
+from jageocoder.address import AddressLevel
+
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.data_manager import DataManager
 
@@ -34,6 +37,7 @@ class OazaConverter(BaseConverter):
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.fp = None
+        self.nonames = {}
 
     def confirm(self) -> bool:
         """
@@ -80,9 +84,21 @@ class OazaConverter(BaseConverter):
         ccode = ("00000" + ccode)[-5:]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)
-        azacode = self.code_from_names(address)
-        if azacode:
-            note = 'aza_id:{}'.format(azacode[5:])
+        aza = self.aza_from_names(address)
+        if aza:
+            note = 'aza_id:{}'.format(aza.code[5:])
+
+        if aza is None or aza.startCountType != 1:
+            if ccode not in self.nonames:
+                self.nonames[ccode] = {
+                    "address": names
+                    + [[AddressLevel.OAZA, AddressNode.NONAME]],
+                    "x": None,
+                    "y": None,
+                    "cns": [],
+                }
+
+            self.nonames[ccode]["cns"].append(oaza)
 
         self.print_line_with_postcode(address, x, y, note=note)
 
@@ -134,6 +150,7 @@ class OazaConverter(BaseConverter):
         self.prepare_jiscode_table()
 
         for pref_code in self.targets:
+            self.nonames = {}
             output_filepath = os.path.join(
                 self.output_dir, '{}_oaza.txt'.format(pref_code))
             if os.path.exists(output_filepath):
@@ -154,3 +171,13 @@ class OazaConverter(BaseConverter):
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_zipfile(input_filepath)
+
+                # Output noname OAZA information with 'common names'.
+                for ccode, values in self.nonames.items():
+                    note = "cn:" + "|".join(values["cns"])
+                    self.print_line(
+                        names=values["address"],
+                        x=None,
+                        y=None,
+                        note=note,
+                    )

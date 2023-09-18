@@ -73,7 +73,8 @@ class GeoloniaConverter(BaseConverter):
         koaza = args[11]
         x, y = args[13], args[12]
         if oaza in ('', '（大字なし）'):
-            names = self.jiscodes[ccode] + [[AddressLevel.OAZA, 'NONAME']]
+            # NONAME nodes will be processed in OazaConverter.
+            return
         else:
             names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
 
