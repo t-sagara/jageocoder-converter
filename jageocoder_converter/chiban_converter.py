@@ -6,6 +6,7 @@ import os
 from typing import Union, Optional, List
 
 from jageocoder.address import AddressLevel
+from jageocoder.node import AddressNode
 
 from jageocoder_converter import BaseConverter
 from jageocoder_converter.data_manager import DataManager
@@ -78,7 +79,7 @@ class ChibanConverter(BaseConverter):
                 if row[1]:  # 大字名
                     names.append([AddressLevel.OAZA, row[1]])
                 else:  # 大字なし
-                    names.append([AddressLevel.OAZA, 'NONAME'])
+                    names.append([AddressLevel.OAZA, AddressNode.NONAME])
 
                 if row[2]:  # 丁目名
                     names.append([AddressLevel.AZA, row[2]])

@@ -71,6 +71,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 岩手県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_iwate",
+                "03"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 福島県 dictionary",
             "type": "python",
             "request": "launch",

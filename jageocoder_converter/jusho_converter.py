@@ -64,6 +64,17 @@ class JushoConverter(BaseConverter):
         uppers = self.jiscodes[jcode]
         names = []
 
+        # 平成30年 (2018年) 奥州市地域自治区解消対応
+        if jcode == '03215':
+            if aza == '水沢区水沢工業団地':
+                aza = '水沢工業団地'
+            else:
+                aza = re.sub(
+                    r'(水沢|江刺|前沢|胆沢|衣川)区',
+                    r'\g<1>',
+                    aza
+                )
+
         # 大字, 字 - street level
         names = [] + self.guessAza(aza, jcode)
 
