@@ -4,6 +4,8 @@ import os
 from typing import Union, Optional, List
 
 from jageocoder.address import AddressLevel
+from jageocoder.node import AddressNode
+
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.data_manager import DataManager
 
@@ -72,13 +74,18 @@ class GeoloniaConverter(BaseConverter):
         oaza = args[8]
         koaza = args[11]
         x, y = args[13], args[12]
-        if oaza != '（大字なし）':
-            names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
+        if oaza in ('', '（大字なし）'):
+            names = self.jiscodes[ccode] + \
+                [[AddressLevel.OAZA, AddressNode.NONAME]]
         else:
-            names = self.jiscodes[ccode]
+            names = self.jiscodes[ccode] + self.guessAza(oaza, ccode)
 
         if koaza:
             names = names + [[AddressLevel.AZA, koaza]]
+
+        if names[-1][1] == AddressNode.NONAME:
+            # NONAME oaza will be registrerd by GaikuConverter.
+            return
 
         azacode = self.code_from_names(names)
         if azacode:

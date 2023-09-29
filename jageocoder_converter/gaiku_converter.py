@@ -11,6 +11,7 @@ import jaconv
 from jageocoder.address import AddressLevel
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.data_manager import DataManager
+from jageocoder.node import AddressNode
 
 logger = getLogger(__name__)
 
@@ -131,7 +132,9 @@ class GaikuConverter(BaseConverter):
                 self.print_line(uppers + names, x, y)
                 return
 
-        if args[2] != '' and args[2] != '（大字なし）':
+        if args[2] in ('', '（大字なし）'):
+            names.append([AddressLevel.OAZA, AddressNode.NONAME])
+        else:
             names += self.guessAza(args[2], jcode)
 
         if args[3] != '' and args[3] != ' ':

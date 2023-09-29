@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2023年7月20日 株式会社情報試作室
+2023年9月27日 株式会社情報試作室
 
 1. データ形式について
 
@@ -33,9 +33,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 位置参照方法ダウンロードサイト
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
-        - 大字町丁目レベル位置参照情報（令和４年） 16.0b (2023-07-20 ダウンロード)
-        - 街区レベル位置参照方法（令和４年） 21.0a (2023-07-20 ダウンロード)
-        - 独自利用規約 https://nlftp.mlit.go.jp/ksj/other/agreement.html
+        - 大字町丁目レベル位置参照情報（令和4年） 16.0b
+        - 街区レベル位置参照方法（令和4年） 21.0a
 
     (3) Geolonia 住所データ
 
@@ -45,7 +44,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 Geolonia 住所データ
         https://geolonia.github.io/japanese-addresses/
-        - 2023-02 更新版 （2023-04-11 ダウンロード）
+        - 2023-07 更新版 （2023-08-06 ダウンロード）
         - ライセンス CC-BY 4.0
         
     (4) 電子国土基本図（地名情報）「住居表示住所」
@@ -59,18 +58,30 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         - 2023-03-31 更新版 （2023-04-11 ダウンロード）
         - 「測量法に基づく国土地理院長承認（使用）R 5JHs 31」による
 
-    (5) 日本郵便郵便番号データ
+    (5) 登記所備付地図
+   
+        法務局の「登記所備付地図」をＧ空間情報センターで GeoJSON に
+        変換した変換済みデータを元に、独自方式で代表点座標を
+        抽出しました。
+
+        出典：「登記所備付地図データ」（法務省）
+        を基にＧ空間情報センターにて変換処理した全市町村 GeoJSON
+        
+        - 令和4年度データ (2023-08-02 ダウンロード)
+            https://front.geospatial.jp/moj-chizu-shp-download/
+
+    (6) 日本郵便郵便番号データ
 
         日本郵便が公開している郵便番号データより、大字・字レベルの
         住所要素に対応する郵便番号（7桁コード）を付与しました。
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2023-03-31 更新版 （2023-04-11 ダウンロード）
+        - 2023-07-31 更新版 （2023-08-05 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
-    (6) アドレス・ベース・レジストリ
+    (7) アドレス・ベース・レジストリ
 
         デジタル庁が公開している「日本 町字マスター データセット」より、
         字レベルの住所要素に対応する字ID（7桁コード）とを取得し、
@@ -122,6 +133,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     「位置参照情報（大字町丁目・街区レベル）令和３年」（国土交通省）、
     「電子国土基本図（地名情報）住居表示住所 2023-03-31」（国土地理院）、
     「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/、
+    「登記所備付データ」（法務局） https://front.geospatial.jp/moj-chizu-shp-download/、
     「アドレス・ベース・レジストリ」（デジタル庁）
     https://www.digital.go.jp/policies/base_registry_address_tos/
     をもとに、株式会社情報試作室が加工した
@@ -135,6 +147,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     国土交通省「位置参照情報」を加工, https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
     国土地理院「電子国土基本図住居表示住所」を加工, https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
     Geolonia Inc. 「Geolonia 住所データ」を加工, https://geolonia.github.io/japanese-addresses/
+    法務局「登記所備付データ」を加工, https://front.geospatial.jp/moj-chizu-shp-download/
     「アドレス・ベース・レジストリ」を加工,
     https://www.digital.go.jp/policies/base_registry_address_tos/
 

@@ -378,8 +378,8 @@ class BaseRegistryConverter(BaseConverter):
 
                     with open(
                             output_filepath_rsdt, "w",
-                            encoding='utf-8') as fout,\
-                            self.manager.open_csv_in_zipfile(nt.name) as fin,\
+                            encoding='utf-8') as fout, \
+                            self.manager.open_csv_in_zipfile(nt.name) as fin, \
                             self.manager.open_csv_in_zipfile(nt_pos.name) as fin_pos:
                         self.fp = fout
                         self.process_lines_0508(fin, fin_pos)

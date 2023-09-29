@@ -47,6 +47,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 神奈川県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_kanagawa",
+                "14"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 北海道 dictionary",
             "type": "python",
             "request": "launch",
@@ -55,6 +67,18 @@
                 "-q",
                 "--db-dir=db_hokkaido",
                 "01"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Build 岩手県 dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_iwate",
+                "03"
             ],
             "justMyCode": false
         },

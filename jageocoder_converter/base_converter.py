@@ -372,6 +372,30 @@ class BaseConverter(object):
 
         return None
 
+    def aza_from_names(
+            self,
+            elements: list) -> Union[object, None]:
+        """
+        Retrieve AzaMaster record from a list of address elements.
+
+        Parameters
+        ----------
+        elements: list
+            List of address elements ([level, name])
+
+        Return
+        ------
+        object
+            AzaMaster record or None.
+        """
+        key = AzaMaster.standardize_aza_name(elements)
+        cands = self.manager.aza_master.search_records_on(
+            "names", key)
+        if len(cands) == 0:
+            return None
+
+        return cands[0]
+
     def code_from_names(
             self,
             elements: list) -> Union[str, None]:
@@ -388,13 +412,11 @@ class BaseConverter(object):
         str
             azacode or None.
         """
-        key = AzaMaster.standardize_aza_name(elements)
-        cands = self.manager.aza_master.search_records_on(
-            "names", key)
-        if len(cands) == 0:
+        aza = self.aza_from_names(elements)
+        if aza is None:
             return None
 
-        return cands[0].code
+        return aza.code
 
     def names_from_code(
             self,

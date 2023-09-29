@@ -9,7 +9,7 @@ Convert location reference information to jageocoder dictionary.
 Usage:
   {p} [-h]
   {p} [-d] [-q] [--no-geolod] [--no-oaza] [--no-gaiku] \
-      [--no-geolonia] [--no-jusho] [--no-basereg] \
+      [--no-geolonia] [--no-jusho] [--no-basereg] [--no-chiban] \
       [--db-dir=<dir>] [--output-dir=<dir>] [--download-dir=<dir>] \
       [--textdata-dir=<dir>] [<prefcodes>...]
 
@@ -23,6 +23,7 @@ Options:
   --no-geolonia   Don't use Geolonia 住所データ.
   --no-jusho      Don't use 電子国土基本図「住居表示住所」.
   --no-basereg    Don't use JDA Address Base Registry.
+  --no-chiban     Don't use 法務省登記所備付地図.
   --db-dir=<dir>        Dictionary creation directory. [default: db]
   --output-dir=<dir>    Parent directory of download-dir and textdata-dir
                         [default: ./]
@@ -67,6 +68,7 @@ if __name__ == '__main__':
         'use_geolonia': not args['--no-geolonia'],
         'use_jusho': not args['--no-jusho'],
         'use_basereg': not args['--no-basereg'],
+        'use_chiban': not args['--no-chiban'],
         'quiet': args['--quiet'],
     }
 

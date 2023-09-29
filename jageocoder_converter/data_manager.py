@@ -78,7 +78,11 @@ class DataManager(object):
         """
         datasets = Dataset(db_dir=self.db_dir)
         datasets.create()
-        records = []
+        records = [{
+            "id": 0,
+            "title": "住所変更履歴",
+            "url": "https://github.com/t-sagara/analyze_city_history",
+        }]
         for converter in converters:
             records.append({
                 "id": converter.priority,
@@ -155,6 +159,9 @@ class DataManager(object):
                 os.path.join(self.text_dir, prefcode + '_*.txt')):
             with open(filename, mode='r') as fb_in:
                 for line in fb_in:
+                    if line[0] == '#':  # Skip as comment
+                        continue
+
                     names = self.re_name_level.findall(line)
                     newline = " ".join([
                         itaiji_converter.standardize(x[0]) + f";{x[1]}"
@@ -301,10 +308,11 @@ class DataManager(object):
                         (len(key) > len(k) and key[len(k)] != ','):
                     res = self._set_sibling(target_id, self.cur_id + 1)
                     if res is False:
-                        logger.debug(
-                            "{}[{}] -> {}[{}]".format(
-                                k, target_id,
-                                key, self.cur_id + 1)
+                        logger.debug((
+                            "Cant set siblingId {}[{}] to {}[{}]."
+                            "(Update it by calling 'update_records' later)"
+                        ).format(
+                            key, self.cur_id + 1, k, target_id)
                         )
 
                     self.nodes[k] = None
