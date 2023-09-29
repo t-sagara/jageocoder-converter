@@ -13,6 +13,7 @@ docopt = "^0.6.2"
 pyproj = "^3.4.1"
 pycapnp = "^1.3.0"
 jageocoder = "2.1.0"
+certifi = ">=2023.7.22"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
