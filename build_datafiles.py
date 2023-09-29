@@ -104,12 +104,15 @@ def create_zipfiles(base_db_dir: Path):
             dest_dir = (base_db_dir / "v1")
             dest_dir.mkdir(mode=0o755, exist_ok=True)
             target = dest_dir / Path(v1_dir).name
-            logger.info(f"Archiving '{v1_dir}'")
-            shutil.make_archive(
-                base_name=target,
-                format="zip",
-                root_dir=v1_dir,
-            )
+            if target.with_suffix(".zip").exists():
+                logger.info(f"File '{target}' exists, skip archiving.")
+            else:
+                logger.info(f"Archiving '{v1_dir}'")
+                shutil.make_archive(
+                    base_name=target,
+                    format="zip",
+                    root_dir=v1_dir,
+                )
 
     for v2_dir in glob.glob(str(base_db_dir / "*_v2*")):
         for fname in (
@@ -128,12 +131,15 @@ def create_zipfiles(base_db_dir: Path):
             dest_dir = (base_db_dir / "v2")
             dest_dir.mkdir(mode=0o755, exist_ok=True)
             target = dest_dir / Path(v2_dir).name
-            logger.info(f"Archiving '{v2_dir}'")
-            shutil.make_archive(
-                base_name=target,
-                format="zip",
-                root_dir=v2_dir,
-            )
+            if target.with_suffix(".zip").exists():
+                logger.info(f"File '{target}' exists, skip archiving.")
+            else:
+                logger.info(f"Archiving '{v2_dir}'")
+                shutil.make_archive(
+                    base_name=target,
+                    format="zip",
+                    root_dir=v2_dir,
+                )
 
 
 def filelist_html(base_db_dir: Path) -> str:
@@ -153,7 +159,7 @@ def filelist_html(base_db_dir: Path) -> str:
         "41": "佐賀県", "42": "長崎県", "43": "熊本県", "44": "大分県",
         "45": "宮崎県", "46": "鹿児島県", "47": "沖縄県"
     }
-    html: str = rf'''<!doctype html>
+    html: str = r'''<!doctype html>
 <html lang="ja-JP">
   <head>
     <meta charset="utf-8">
@@ -168,14 +174,14 @@ def filelist_html(base_db_dir: Path) -> str:
   </head>
   <body>
     <div class="container">
-        <h1>Jageocoder データファイル一覧 ({published[0]}-{published[1]}-{published[2]}版)</h1>
+        <h1>Jageocoder データファイル一覧</h1>
         <div class="row"justify-content-md-center>
             <div class="col-0 col-md-1 col-lg-1"></div>
             <div class="col-12 col-md-10 col-lg-10">
             <ul>
             <li>ここにあるファイルは
                 <a href="https://t-sagara.github.io/jageocoder/" target="_blank">
-                jageocoder </a> で利用する「住所データファイル」です。
+                jageocoder </a> で利用する「住所データベースファイル」です。
             </li>
             <li>このデータを複製、転載したり、利用した結果を公開する場合には、
                 データ提供元を記載するなどの条件があります。
@@ -194,17 +200,18 @@ def filelist_html(base_db_dir: Path) -> str:
     # <th>ファイル名</th><th>サイズ(B)</th><th>レベル</th>
     # <th>地域</th><th>Jageocoderバージョン</th></tr></thead>
     content = (
-        '<table class="table table-striped">'
-        '<thead><tr>'
-        '<th scope="col">#</th>'
-        '<th scope="col">ファイル名</th>'
-        '<th scope="col">レベル</th>'
-        '<th scope="col">地域</th>'
-        '<th scope="col">対応バージョン</th>'
-        '<th scope="col">サイズ(B)</th>'
-        '<th scope="col">sha1</th>'
-        '</tr></thead>'
-        '<tbody>'
+        '<table class="table table-striped"><thead>\n'
+        '<tr>\n'
+        '  <th scope="col">#</th>\n'
+        '  <th scope="col">作成日</th>\n'
+        '  <th scope="col">ファイル名</th>\n'
+        '  <th scope="col">レベル</th>\n'
+        '  <th scope="col">地域</th>\n'
+        '  <th scope="col">対応バージョン</th>\n'
+        '  <th scope="col">サイズ(B)</th>\n'
+        '  <th scope="col">sha1</th>\n'
+        '</tr>\n'
+        '</thead><tbody>\n'
     )
     for i, datafile in enumerate(sorted(glob.glob(str(base_db_dir / "*_v??.zip")))):
         datafile: Path = Path(datafile)
@@ -219,20 +226,27 @@ def filelist_html(base_db_dir: Path) -> str:
 
         level = "街区" if args.group(1) == "gaiku" else "住居表示"
         area = "全国" if args.group(2) == "all" else prefs[args.group(2)]
-        vers = "1.3, 1.4" if args.group(3) == "14" else "2.0"
+        if args.group(3) == "14":
+            vers = "1.3, 1.4"
+        elif args.group(3) == "20":
+            vers = "2.0, 2.1"
+        else:
+            vers = "2.1"
+
         content += (
-            '<tr>'
-            f'<th scope="row">{i + 1}</th>'
-            f'<td><a href="{filename}">{filename}</a></td>'
-            f'<td>{level}</td>'
-            f'<td>{area}</td>'
-            f'<td>{vers}</td>'
-            f'<td class="text-end mono">{filesize:,}</td>'
-            f'<td class="mono">{sha1}</td>'
-            '</tr>'
+            '<tr>\n'
+            f'  <th scope="row">{i + 1}</th>\n'
+            f'  <td>{"-".join(published)}</td>\n'
+            f'  <td><a href="{filename}">{filename}</a></td>\n'
+            f'  <td>{level}</td>\n'
+            f'  <td>{area}</td>\n'
+            f'  <td>{vers}</td>\n'
+            f'  <td class="text-end mono">{filesize:,}</td>\n'
+            f'  <td class="mono">{sha1}</td>\n'
+            '</tr>\n'
         )
 
-    content += "</tbody></table>"
+    content += "</tbody></table>\n"
     html = html.replace('<!-- Content here -->', content)
     return html
 

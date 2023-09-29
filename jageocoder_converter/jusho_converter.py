@@ -75,6 +75,10 @@ class JushoConverter(BaseConverter):
                     aza
                 )
 
+        # 平成27年 (2015年) 八戸市地域自治区解消対応
+        if jcode == '02203':
+            aza = re.sub(r'南郷区', r'南郷', aza)
+
         # 大字, 字 - street level
         names = [] + self.guessAza(aza, jcode)
 
