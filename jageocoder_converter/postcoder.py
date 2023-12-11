@@ -77,8 +77,15 @@ class PostCoder(BaseConverter):
                             if '掲載がない' in oaza:
                                 oaza = ''
 
-                            cityname = ''.join([
-                                x[1] for x in self.jiscodes[citycode]])
+                            try:
+                                cityname = ''.join(
+                                    [x[1] for x in self.jiscodes[citycode]]
+                                )
+                            except KeyError:
+                                logger.warning(
+                                    f"Unknown citycode '{citycode}', skipped"
+                                )
+                                continue
 
                             m = self.re_koaza.match(oaza)
                             if m:
@@ -257,22 +264,10 @@ class PostCoder(BaseConverter):
     @classmethod
     def get_instance(cls, directory=None):
         if cls.postcoder is None:
-            if directory is None:
-                raise RuntimeError("No directory specified.")
+            if directory is None:  # Do not use PostCoder.
+                return None
 
             cls.postcoder = PostCoder(input_dir=directory)
             cls.postcoder.load_file()
 
         return cls.postcoder
-
-
-if __name__ == '__main__':
-    import logging
-    logging.basicConfig(level=logging.WARNING)
-
-    postcoder = PostCoder(input_dir=os.path.join(
-        os.path.dirname(__file__), '../download/japanpost/'))
-    postcoder.load_file()
-
-    print(postcoder.search('東京都多摩市落合１－１５－２'))
-    print(postcoder.search('東京都豊島区雑司ヶ谷２－１３－１５'))

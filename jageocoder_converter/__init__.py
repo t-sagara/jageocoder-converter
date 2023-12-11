@@ -46,6 +46,7 @@ def __prepare_postcoder(directory: PathLike):
 
 def convert(
     prefs: Optional[List[str]] = None,
+    use_postcode: bool = True,
     use_geolod: bool = True,
     use_oaza: bool = True,
     use_gaiku: bool = True,
@@ -80,12 +81,12 @@ def convert(
     converters = []
 
     converter = CityConverter(
-            manager=manager,
-            input_dir=os.path.join(download_dir, 'geonlp'),
-            output_dir=output_dir,
-            priority=1,
-            targets=targets,
-            quiet=quiet
+        manager=manager,
+        input_dir=os.path.join(download_dir, 'geonlp'),
+        output_dir=output_dir,
+        priority=1,
+        targets=targets,
+        quiet=quiet
     )
     if use_oaza:
         converter.unescape_texts('city')
@@ -193,8 +194,9 @@ def convert(
         converter.download_files()
 
     # Prpare PostCode table
-    logger.info("郵便番号テーブルを作成します。")
-    __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
+    if use_postcode:
+        logger.info("郵便番号テーブルを作成します。")
+        __prepare_postcoder(os.path.join(download_dir, 'japanpost'))
 
     # Converts location reference information from various sources
     # into the text format.
