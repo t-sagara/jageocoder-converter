@@ -252,6 +252,20 @@ def filelist_html(base_db_dir: Path) -> str:
 
 
 if __name__ == "__main__":
+    import sys
+    do_build_gaiku = '--gaiku' in sys.argv[1:] or '--all' in sys.argv[1:]
+    do_build_jukyo = '--jukyo' in sys.argv[1:] or '--all' in sys.argv[1:]
+    do_create_zip = '--zip' in sys.argv[1:] or '--all' in sys.argv[1:]
+    do_create_index = '--index' in sys.argv[1:] or '--all' in sys.argv[1:]
+    if do_build_gaiku | do_build_jukyo | do_create_zip | do_create_index:
+        pass
+    else:
+        print((
+            f"Usage: python {sys.argv[0]} [--db-dir=<dbdir>] "
+            "[--gaiku] [--jukyo] [--zip] [--index] [--all]"
+        ))
+        exit(1)
+
     # Set logger
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
@@ -263,27 +277,36 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
         logger.addHandler(console_handler)
 
-    if len(sys.argv) < 2:
+    for argv in sys.argv[1:]:
+        if argv.startswith('--db-dir='):
+            base_db_dir = Path(argv[9:])
+            break
+
+    else:
         base_db_dir = Path("./") / "db_{}".format(
             date.today().strftime("%Y%m%d")
         )
-    else:
-        base_db_dir = Path(sys.argv[1])
 
     all_prefs = ["{:02d}".format(x) for x in range(1, 48)] + [None]
-    build_gaiku(base_db_dir, targets=[None])
-    # build_jukyo(base_db_dir, targets=all_prefs)
-    build_jukyo(base_db_dir, targets=[None])
-    create_zipfiles(base_db_dir)
+    if do_build_gaiku:
+        build_gaiku(base_db_dir, targets=[None])
 
-    v1_dir = base_db_dir / "v1"
-    if v1_dir.exists():
-        html = filelist_html(v1_dir)
-        with open(v1_dir / "index.html", "w") as f:
-            f.write(html)
+    if do_build_jukyo:
+        # build_jukyo(base_db_dir, targets=all_prefs)
+        build_jukyo(base_db_dir, targets=[None])
 
-    v2_dir = base_db_dir / "v2"
-    if v2_dir.exists():
-        html = filelist_html(v2_dir)
-        with open(v2_dir / "index.html", "w") as f:
-            f.write(html)
+    if do_create_zip:
+        create_zipfiles(base_db_dir)
+
+    if do_create_index:
+        v1_dir = base_db_dir / "v1"
+        if v1_dir.exists():
+            html = filelist_html(v1_dir)
+            with open(v1_dir / "index.html", "w") as f:
+                f.write(html)
+
+        v2_dir = base_db_dir / "v2"
+        if v2_dir.exists():
+            html = filelist_html(v2_dir)
+            with open(v2_dir / "index.html", "w") as f:
+                f.write(html)
