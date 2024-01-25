@@ -23,14 +23,14 @@ Python 3.6 以降が必要です。 ``pip`` でインストールします。 ::
 実行方法
 --------
 
-モジュールを直接実行します。 ``-h`` オプションで
-ヘルプを表示します。 ::
+辞書を作成するにはモジュールを直接実行します。 ::
+
+  python -m jageocoder_converter
+
+
+``-h`` オプションでヘルプを表示します。 ::
 
   python -m jageocoder_converter -h
-
-辞書を作成するには ``convert`` コマンドを指定します。 ::
-
-  python -m jageocoder_converter convert
 
 実行すると、辞書作成に必要な位置参照情報をダウンロードして変換し、
 辞書を作成します。
@@ -95,19 +95,19 @@ Python 3.6 以降が必要です。 ``pip`` でインストールします。 ::
 
 ・千葉県・埼玉県・東京都・神奈川県の街区レベル辞書を作成 ::
 
-  python -m jageocoder_converter convert --no-jusho 11 12 13 14
+  python -m jageocoder_converter --no-jusho 11 12 13 14
 
 ・東京都だけの住居表示住所レベル辞書を作成 ::
 
-  python -m jageocoder_converter convert 13
+  python -m jageocoder_converter 13
 
 ・全国の大字・町丁目レベル辞書を ``./oazadb/`` に作成 ::
 
-  python -m jageocoder_converter convert --db-dir=oazadb --no-gaiku --no-jusho
+  python -m jageocoder_converter --db-dir=oazadb --no-gaiku --no-jusho
 
 ・全国の住居表示住所レベルまでの辞書をバックグラウンドで作成 ::
 
-  nohup python -m jageocoder_converter convert -d -q &
+  nohup python -m jageocoder_converter -d -q &
   tail -f nohup.out
 
 
