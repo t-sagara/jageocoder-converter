@@ -58,7 +58,7 @@ class GaikuConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '21.0a'  # PY2022, 令和4年度
+        version = '22.0a'  # PY2023, 令和5年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -80,6 +80,9 @@ class GaikuConverter(BaseConverter):
 
         if '.' in args[4]:
             # 街区符号・地番に小数点を含む場合はエラーとして無視
+            return
+        elif ',' in args[4]:
+            # R5 版から "24,29" のように複数の地番を含むケースがあるので無視
             return
 
         """

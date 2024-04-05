@@ -1,7 +1,12 @@
+"""
+大字レベル位置参照情報の検証を行う。
+Usage: python3 validate_oaza.py
+"""
 import csv
 import glob
 import io
 import logging
+from pathlib import Path
 import zipfile
 
 logger = logging.getLogger(__name__)
@@ -54,7 +59,8 @@ def validate_line(fname: str, lineno: int, row: dict):
 
 
 def process_files():
-    zipfiles = glob.glob('download/oaza/*-16.0b.zip')
+    zipfiles = glob.glob(Path(__file__).parent.parent /
+                         'download/oaza/*.0b.zip')
     zipfiles.sort()
     for zipfilepath in zipfiles:
         with zipfile.ZipFile(zipfilepath) as z:
