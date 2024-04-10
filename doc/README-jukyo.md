@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2024年1月6日 株式会社情報試作室
+2024年4月10日 株式会社情報試作室
 
 1. データ形式について
 
@@ -33,8 +33,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 位置参照方法ダウンロードサイト
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
-        - 大字町丁目レベル位置参照情報（令和4年） 16.0b （2024-01-06 ダウンロード）
-        - 街区レベル位置参照方法（令和4年） 21.0a （2024-01-06 ダウンロード）
+        - 大字町丁目レベル位置参照情報（令和5年） 17.0b （2024-04-04 ダウンロード）
+        - 街区レベル位置参照方法（令和5年） 22.0a （2024-04-04 ダウンロード）
 
     (3) Geolonia 住所データ
 
@@ -44,7 +44,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 Geolonia 住所データ
         https://geolonia.github.io/japanese-addresses/
-        - 2023-07 更新版 （2024-01-06 ダウンロード）
+        - 2024-01 更新版 （2024-04-04 ダウンロード）
         - ライセンス CC-BY 4.0
         
     (4) 電子国土基本図（地名情報）「住居表示住所」
@@ -77,7 +77,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2023-12-31 更新版 （2024-01-06 ダウンロード）
+        - 2024-03-29 更新版 （2024-04-04 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
@@ -108,7 +108,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         https://catalog.registries.digital.go.jp/rc/dataset/ba000005
         - 「全国 住居表示－住所マスター位置参照拡張 データセット」
         https://catalog.registries.digital.go.jp/rc/dataset/ba000006
-        - 2023-01-23 公開版 （2024-01-06 ダウンロード）
+        - 2023-01-23 公開版 （2024-04-09 ダウンロード）
         - 利用規約に基づき加工したデータを配布しています
             https://www.digital.go.jp/policies/base_registry_address_tos/
 
@@ -130,7 +130,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     公開する場合、利用者から見えるところ（ヘルプページ等）に
     以下の文言を記載してください。国土交通省の利用規約も満たします。
 
-    「位置参照情報（大字町丁目・街区レベル）令和４年」（国土交通省）、
+    「位置参照情報（大字町丁目・街区レベル）令和5年」（国土交通省）、
     「電子国土基本図（地名情報）住居表示住所」（国土地理院）、
     「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/、
     「登記所備付データ」（法務局） https://front.geospatial.jp/moj-chizu-shp-download/、
