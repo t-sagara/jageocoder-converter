@@ -506,7 +506,13 @@ class BaseConverter(object):
 
         if self.postcoder is None:
             from jageocoder_converter.postcoder import PostCoder
-            self.postcoder = PostCoder.get_instance()
+            postcoder = PostCoder.get_instance()
+            if postcoder is None:
+                self.disable_postcoder = True
+                self.print_line(names, x, y, note)
+                return
+
+            self.postcoder = postcoder
 
         if names[-1][0] <= AddressLevel.AZA:
             postcode = self.postcoder.search_by_list(names)

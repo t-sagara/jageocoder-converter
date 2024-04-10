@@ -8,7 +8,7 @@ Convert location reference information to jageocoder dictionary.
 
 Usage:
   {p} [-h]
-  {p} [-d] [-q] [--no-geolod] [--no-oaza] [--no-gaiku] \
+  {p} [-d] [-q] [--no-postcode] [--no-geolod] [--no-oaza] [--no-gaiku] \
       [--no-geolonia] [--no-jusho] [--no-basereg] [--no-chiban] \
       [--db-dir=<dir>] [--output-dir=<dir>] [--download-dir=<dir>] \
       [--textdata-dir=<dir>] [<prefcodes>...]
@@ -17,6 +17,7 @@ Options:
   -h --help       Show this help.
   -d --debug      Show debug messages.
   -q --quiet      Quiet mode. Skip confirming the terms of use.
+  --no-postcode   Don't assign postcode.
   --no-geolod     Don't use 歴史的行政区域データセットβ版地名辞書
   --no-oaza       Don't use 大字・町丁目レベル位置参照情報.
   --no-gaiku      Don't use 街区レベル位置参照情報.
@@ -62,6 +63,7 @@ if __name__ == '__main__':
 
     # Set parameters
     kwargs = {
+        'use_postcode': not args['--no-postcode'],
         'use_geolod': not args['--no-geolod'],
         'use_oaza': not args['--no-oaza'],
         'use_gaiku': not args['--no-gaiku'],
