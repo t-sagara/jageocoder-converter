@@ -262,13 +262,12 @@ class BaseConverter(object):
         """
         download_url = None
         data_dir = data_dir or self.input_dir
-        issued_at = datetime.datetime.fromisoformat(
-            '2000-01-01T00:00')
-        modified_at = datetime.datetime.fromisoformat(
-            '2000-01-01T00:00')
+        default_dt = '2000-01-01T00:00'
         for resource in metadata['resources']:
-            issued_at = resource["created"]
-            modified_at = resource["metadata_modified"]
+            issued_at = datetime.datetime.fromisoformat(
+                resource.get("created", default_dt))
+            modified_at = datetime.datetime.fromisoformat(
+                resource.get("metadata_modified", default_dt))
             url = resource["url"]
             if resource["format"].lower().startswith("csv"):
                 basename = os.path.basename(url)

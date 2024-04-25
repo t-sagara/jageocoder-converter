@@ -406,7 +406,7 @@ class DataManager(object):
             n = 0
             aza_codes = {}
             for row in reader:
-                if row["全国地方公共団体コード"][0:2] not in self.targets:
+                if row["lg_code"][0:2] not in self.targets:
                     continue
 
                 record = self.aza_master.from_csvrow(row)
