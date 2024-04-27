@@ -440,6 +440,10 @@ class DataManager(object):
         zipfilepath: PathLike
             Path to the target zipfile.
         """
+        if not os.path.exists(zipfilepath):
+            yield None
+            return
+
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
                 if filename.lower().endswith('.csv'):

@@ -213,7 +213,7 @@ class BaseRegistryConverter(BaseConverter):
 
             self.print_line(names, x, y)
 
-    def process_lines_0508(self, fin, fin_pos):
+    def process_lines_rsdt(self, fin, fin_pos):
         """
         Parse lines and output address nodes in
         'mt_rsdtdsp_rsdt_prefxx.csv' and 'mt_rsdtdsp_rsdt_pos_prefxx.csv'.
@@ -272,26 +272,16 @@ class BaseRegistryConverter(BaseConverter):
         # Read spatial attributes of the all records from fin_pos
         reader = csv.DictReader(fin)
         reader_pos = csv.DictReader(fin_pos)
+
         pos_pool = {}
-        max_code_in_pool = None
+        for pos_row in reader_pos:
+            pos_codes = __calc_codes(pos_row)
+            pos_building_code = pos_codes["building"]
+            pos_pool[pos_building_code] = pos_row
+
         for row in reader:
             codes = __calc_codes(row)
             building_code = codes["building"]
-
-            if max_code_in_pool is None or max_code_in_pool < building_code:
-                pos_pool = {}
-                while len(pos_pool) < 100:
-                    pos_row = next(reader_pos, None)
-                    if pos_row is None:
-                        break
-
-                    pos_codes = __calc_codes(pos_row)
-                    pos_building_code = pos_codes["building"]
-                    if pos_building_code < building_code:
-                        continue
-
-                    pos_pool[pos_building_code] = pos_row
-                    max_code_in_pool = pos_building_code
 
             if building_code not in pos_pool:
                 msg = "No coodinates for rsdt '{}'".format(",".join(
@@ -402,19 +392,15 @@ class BaseRegistryConverter(BaseConverter):
         crs = None
 
         reader = csv.DictReader(fin)
-        reader_pos = csv.DictReader(fin_pos)
         pos_pool = {}
 
         # Read spatial attributes in to memory from fin_pos
-        while True:
-            pos_row = next(reader_pos, None)
-            if pos_row is None:
-                break
-
-            pos_codes = __calc_codes(pos_row)
-            pos_prc_id = pos_codes["parcel"]
-            pos_pool[pos_prc_id] = pos_row
-            max_code_in_pool = pos_prc_id
+        if fin_pos is not None:
+            reader_pos = csv.DictReader(fin_pos)
+            for pos_row in reader_pos:
+                pos_codes = __calc_codes(pos_row)
+                pos_prc_id = pos_codes["parcel"]
+                pos_pool[pos_prc_id] = pos_row
 
         for row in reader:
             codes = __calc_codes(row)
@@ -424,7 +410,7 @@ class BaseRegistryConverter(BaseConverter):
                     [row[k] for k in (
                         "city", "ward", "oaza_cho", "chome",
                         "koaza", "prc_num1", "prc_num2", "prc_num3")]))
-                logger.warning(msg)
+                # logger.warning(msg)
                 x, y = 999.9, 999.9
             else:
                 pos_row = pos_pool[prc_id]
@@ -543,7 +529,7 @@ class BaseRegistryConverter(BaseConverter):
                             self.manager.open_csv_in_zipfile(nt.name) as fin, \
                             self.manager.open_csv_in_zipfile(nt_pos.name) as fin_pos:
                         self.fp = fout
-                        self.process_lines_0508(fin, fin_pos)
+                        self.process_lines_rsdt(fin, fin_pos)
 
             # 地番マスター，位置参照拡張
             output_filepath_parcel = os.path.join(

@@ -74,7 +74,7 @@ def build_jukyo(base_db_dir: Path, targets: List[Union[str, None]]):
                 use_gaiku=True,
                 use_geolonia=True,
                 use_jusho=True,
-                use_chiban=True,
+                use_chiban=False,
                 use_basereg=True,
                 db_dir=db_dir,
                 download_dir=None,

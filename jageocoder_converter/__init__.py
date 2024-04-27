@@ -164,11 +164,13 @@ def convert(
         converter.unescape_texts('basereg_town')
         converter.unescape_texts('basereg_blk')
         converter.unescape_texts('basereg_rsdt')
+        converter.unescape_texts('basereg_parcel')
         converters.append(converter)
     else:
         converter.escape_texts('basereg_town')
         converter.escape_texts('basereg_blk')
         converter.escape_texts('basereg_rsdt')
+        converter.escape_texts('basereg_parcel')
 
     converter = ChibanConverter(
         manager=manager,
