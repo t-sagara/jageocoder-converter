@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder-converter"
-version = "2.0.5"
+version = "2.1.1"
 description = "Dictionary generator for jageocoder."
 authors = ["\"Takeshi Sagara\" <sagara@info-proto.com>"]
 readme = "README.md"
