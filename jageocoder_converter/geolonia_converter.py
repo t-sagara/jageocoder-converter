@@ -1,3 +1,4 @@
+import bz2
 import csv
 from logging import getLogger
 import os
@@ -123,7 +124,7 @@ class GeoloniaConverter(BaseConverter):
 
         for pref_code in self.targets:
             output_filepath = os.path.join(
-                self.output_dir, '{}_geolonia.txt'.format(pref_code))
+                self.output_dir, '{}_geolonia.txt.bz2'.format(pref_code))
             if os.path.exists(output_filepath):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
@@ -132,7 +133,11 @@ class GeoloniaConverter(BaseConverter):
             if not os.path.exists(input_filepath):
                 self.download_files()
 
-            with open(output_filepath, 'w', encoding='utf-8') as fout:
+            with bz2.open(
+                filename=output_filepath,
+                mode='wt',
+                encoding='utf-8'
+            ) as fout:
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_csvfile(input_filepath, pref_code)

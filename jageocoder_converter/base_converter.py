@@ -812,7 +812,7 @@ class BaseConverter(object):
             Text file patter, such as 'city', 'oaza', etc.
         """
         for filepath in glob.glob(
-                os.path.join(self.output_dir, f"*_{pattern}.txt")):
+                os.path.join(self.output_dir, f"*_{pattern}.txt.bz2")):
             if os.path.exists(filepath):
                 os.rename(filepath, filepath + '.bak')
 
@@ -826,6 +826,6 @@ class BaseConverter(object):
             Text file patter, such as 'city', 'oaza', etc.
         """
         for filepath in glob.glob(
-                os.path.join(self.output_dir, f"*_{pattern}.txt.bak")):
+                os.path.join(self.output_dir, f"*_{pattern}.txt.bz2.bak")):
             if os.path.exists(filepath):
                 os.rename(filepath, filepath[0:-4])

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder-converter"
-version = "2.0.4"
+version = "2.0.5"
 description = "Dictionary generator for jageocoder."
 authors = ["\"Takeshi Sagara\" <sagara@info-proto.com>"]
 readme = "README.md"
@@ -10,6 +10,7 @@ packages = [{include = "jageocoder_converter"}]
 python = ">=3.8.1,<4.0"
 jaconv = ">=0.3.4"
 docopt = ">=0.6.2"
+portabletab = ">=0.3.5"
 pyproj = ">=3.4.1"
 jageocoder = ">=2.1.0"
 certifi = ">=2023.7.22"

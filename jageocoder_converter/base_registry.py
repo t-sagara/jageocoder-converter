@@ -1,3 +1,4 @@
+import bz2
 import copy
 import csv
 import glob
@@ -310,8 +311,9 @@ class BaseRegistryConverter(BaseConverter):
                 # logger.warning(msg)
                 names = copy.copy(self.names_from_code(codes["aza"]))
                 if row["blk_num"]:
-                    block_name = row["blk_num"] + \
-                        ("番" if row["rsdt_addr_flg"] == "1" else "番地")
+                    # block_name = row["blk_num"] + \
+                    #     ("番" if row["rsdt_addr_flg"] == "1" else "番地")
+                    block_name = row["blk_num"] + "番"
                     names.append([AddressLevel.BLOCK, block_name])
 
             else:
@@ -385,7 +387,7 @@ class BaseRegistryConverter(BaseConverter):
         def __calc_codes(row: dict) -> dict:
             codes = {}
             codes["aza"] = row["lg_code"][0:5] + row["machiaza_id"]
-            codes["parcel"] = row["prc_id"]
+            codes["parcel"] = codes["aza"] + row["prc_id"]
             return codes
 
         transformer = None
@@ -426,8 +428,9 @@ class BaseRegistryConverter(BaseConverter):
 
             names = copy.copy(self.names_from_code(codes["aza"]))
             if row["prc_num1"]:
-                block_name = row["prc_num1"] + \
-                    ("番" if row["rsdt_addr_flg"] == "1" else "番地")
+                # block_name = row["prc_num1"] + \
+                #     ("番" if row["rsdt_addr_flg"] == "1" else "番地")
+                block_name = row["prc_num1"] + "番地"
                 names.append([AddressLevel.BLOCK, block_name])
 
             if row["prc_num3"]:
@@ -454,7 +457,7 @@ class BaseRegistryConverter(BaseConverter):
         for pref_code in self.targets:
             # 町字マスター
             output_filepath = os.path.join(
-                self.output_dir, f"{pref_code}_basereg_town.txt")
+                self.output_dir, f"{pref_code}_basereg_town.txt.bz2")
             if os.path.exists(output_filepath):
                 logger.info(f"SKIP: {output_filepath}")
             else:
@@ -468,7 +471,11 @@ class BaseRegistryConverter(BaseConverter):
                         with z.open(filename, mode='r') as f:
                             nt.write(f.read())
 
-                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                    with bz2.open(
+                            filename=output_filepath,
+                            mode='wt',
+                            encoding='utf-8'
+                        ) as fout, \
                             self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
                         self.process_lines_06(fin)
@@ -476,16 +483,19 @@ class BaseRegistryConverter(BaseConverter):
                 zip_filename = os.path.join(
                     self.input_dir, "mt_town_all.csv.zip")
 
-                with open(output_filepath, 'a', encoding='utf-8') as fout, \
+                with bz2.open(
+                        filename=output_filepath,
+                        mode='at', encoding='utf-8'
+                    ) as fout, \
                         self.manager.open_csv_in_zipfile(zip_filename) as fin:
                     self.fp = fout
                     self.process_lines_01(fin, pref_code)
 
             # 住居表示－街区マスター位置参照拡張
             output_filepath = os.path.join(
-                self.output_dir, f'{pref_code}_basereg_blk.txt')
+                self.output_dir, f'{pref_code}_basereg_blk.txt.bz2')
             output_filepath_rsdt = os.path.join(
-                self.output_dir, f'{pref_code}_basereg_rsdt.txt')
+                self.output_dir, f'{pref_code}_basereg_rsdt.txt.bz2')
             if os.path.exists(output_filepath) and \
                     os.path.exists(output_filepath_rsdt):
                 logger.info(f"SKIP: {output_filepath}")
@@ -498,7 +508,11 @@ class BaseRegistryConverter(BaseConverter):
                         with z.open(filename, mode='r') as f:
                             nt.write(f.read())
 
-                    with open(output_filepath, 'w', encoding='utf-8') as fout, \
+                    with bz2.open(
+                            filename=output_filepath,
+                            mode='wt',
+                            encoding='utf-8'
+                        ) as fout, \
                             self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
                         self.process_lines_07(fin)
@@ -523,9 +537,11 @@ class BaseRegistryConverter(BaseConverter):
                         with z.open(filename_pos, mode='r') as f:
                             nt_pos.write(f.read())
 
-                    with open(
-                            output_filepath_rsdt, "w",
-                            encoding='utf-8') as fout, \
+                    with bz2.open(
+                            filename=output_filepath_rsdt,
+                            mode="wt",
+                            encoding='utf-8'
+                        ) as fout, \
                             self.manager.open_csv_in_zipfile(nt.name) as fin, \
                             self.manager.open_csv_in_zipfile(nt_pos.name) as fin_pos:
                         self.fp = fout
@@ -533,7 +549,7 @@ class BaseRegistryConverter(BaseConverter):
 
             # 地番マスター，位置参照拡張
             output_filepath_parcel = os.path.join(
-                self.output_dir, f'{pref_code}_basereg_parcel.txt')
+                self.output_dir, f'{pref_code}_basereg_parcel.txt.bz2')
             if os.path.exists(output_filepath_parcel):
                 logger.info(f"SKIP: {output_filepath_parcel}")
             else:
@@ -542,9 +558,11 @@ class BaseRegistryConverter(BaseConverter):
                 for zippath in glob.glob(parcel_zips):
                     zippath_pos = zippath.replace(
                         'parcel_city', 'parcel_pos_city')
-                    with open(
-                            output_filepath_parcel, "a",
-                            encoding='utf-8') as fout, \
+                    with bz2.open(
+                            filename=output_filepath_parcel,
+                            mode="at",
+                            encoding='utf-8'
+                        ) as fout, \
                             self.manager.open_csv_in_zipfile(zippath) as fin, \
                             self.manager.open_csv_in_zipfile(zippath_pos) as fin_pos:
                         self.fp = fout

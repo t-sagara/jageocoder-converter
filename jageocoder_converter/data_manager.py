@@ -1,3 +1,4 @@
+import bz2
 from contextlib import contextmanager
 import csv
 import glob
@@ -153,11 +154,11 @@ class DataManager(object):
             The target prefecture code (JISX0401).
         """
         logger.info('Sorting text data in {}'.format(
-            os.path.join(self.text_dir, prefcode + '_*.txt')))
+            os.path.join(self.text_dir, prefcode + '_*.txt.bz2')))
         records = []
         for filename in glob.glob(
-                os.path.join(self.text_dir, prefcode + '_*.txt')):
-            with open(filename, mode='r') as fb_in:
+                os.path.join(self.text_dir, prefcode + '_*.txt.bz2')):
+            with bz2.open(filename, mode='rt') as fb_in:
                 for line in fb_in:
                     if line[0] == '#':  # Skip as comment
                         continue
@@ -425,7 +426,7 @@ class DataManager(object):
         self.aza_master.create_trie_on(attr="code")
         self.aza_master.create_trie_on(
             attr="names",
-            func=lambda x: AzaMaster.standardize_aza_name(
+            key_func=lambda x: AzaMaster.standardize_aza_name(
                 json.loads(x)
             )
         )

@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2024年4月25日 株式会社情報試作室
+2024年4月29日 株式会社情報試作室
 
 1. データ形式について
 
@@ -96,9 +96,9 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
             https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_all.csv.zip
         - 「全国 住居表示・住所マスター位置参照拡張 データセット」(2024-03-15更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_pos_all.csv.zip
-        - 「（市区町村別）地番マスター データセット」(2024-04-23更新)
+        - 「（市区町村別）地番マスター データセット」(2024-04-26更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_cityXXXXXX.csv.zip
-        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-04-23更新)
+        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-04-26更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_pos_cityXXXXXX.csv.zip
         - 2024-04-25 ダウンロード
         - 利用規約に基づき加工したデータを配布しています
