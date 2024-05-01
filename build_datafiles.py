@@ -74,7 +74,7 @@ def build_jukyo(base_db_dir: Path, targets: List[Union[str, None]]):
                 use_gaiku=True,
                 use_geolonia=True,
                 use_jusho=True,
-                use_chiban=True,
+                use_chiban=False,
                 use_basereg=True,
                 db_dir=db_dir,
                 download_dir=None,
@@ -224,7 +224,7 @@ def filelist_html(base_db_dir: Path) -> str:
         if args is None:
             continue
 
-        level = "街区" if args.group(1) == "gaiku" else "住居表示"
+        level = "街区" if args.group(1) == "gaiku" else "住居表示・地番"
         area = "全国" if args.group(2) == "all" else prefs[args.group(2)]
         if args.group(3) == "14":
             vers = "1.3, 1.4"

@@ -1,3 +1,4 @@
+import bz2
 import csv
 import json
 from logging import getLogger
@@ -223,10 +224,14 @@ class CityConverter(BaseConverter):
         Output 'output/xx_city.txt'
         """
         for pref_code in self.targets:
-            with open(os.path.join(
-                    self.output_dir, '{}_city.txt'.format(pref_code)),
-                    mode='w', encoding='utf-8') as fout:
-
+            with bz2.open(
+                filename=os.path.join(
+                    self.output_dir,
+                    f'{pref_code}_city.txt.bz2'
+                ),
+                mode='wt',
+                encoding='utf-8'
+            ) as fout:
                 self.set_fp(fout)
                 for record in self.records[pref_code]:
                     self.print_line_with_postcode(*record)

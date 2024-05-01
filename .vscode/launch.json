@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -14,7 +14,7 @@
         },
         {
             "name": "Python: Build Datafiles",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "build_datafiles.py",
             "args": [
@@ -25,7 +25,7 @@
         },
         {
             "name": "Build dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -36,7 +36,7 @@
         },
         {
             "name": "Build 東京都 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -48,7 +48,7 @@
         },
         {
             "name": "Build 神奈川県 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -60,7 +60,7 @@
         },
         {
             "name": "Build 北海道 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -72,7 +72,7 @@
         },
         {
             "name": "Build 岩手県 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -84,7 +84,7 @@
         },
         {
             "name": "Build 福島県 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -96,7 +96,7 @@
         },
         {
             "name": "Build 茨城県 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -108,7 +108,7 @@
         },
         {
             "name": "Build 長野県 dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -120,7 +120,7 @@
         },
         {
             "name": "Build 大阪府/街区レベル dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [
@@ -134,14 +134,14 @@
         },
         {
             "name": "Test Capnp records",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "test_scripts/test_capnp_manager.py",
             "justMyCode": false
         },
         {
             "name": "Test search in 北海道",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -152,7 +152,7 @@
         },
         {
             "name": "Test base_registry only dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder_converter",
             "args": [

@@ -1,3 +1,4 @@
+import bz2
 import csv
 import glob
 import io
@@ -152,7 +153,7 @@ class OazaConverter(BaseConverter):
         for pref_code in self.targets:
             self.nonames = {}
             output_filepath = os.path.join(
-                self.output_dir, '{}_oaza.txt'.format(pref_code))
+                self.output_dir, '{}_oaza.txt.bz2'.format(pref_code))
             if os.path.exists(output_filepath):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
@@ -167,7 +168,11 @@ class OazaConverter(BaseConverter):
                 else:
                     input_filepath = zipfiles[0]
 
-            with open(output_filepath, 'w', encoding='utf-8') as fout:
+            with bz2.open(
+                filename=output_filepath,
+                mode='wt',
+                encoding='utf-8'
+            ) as fout:
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_zipfile(input_filepath)

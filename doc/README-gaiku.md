@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（街区レベル）
-2024年4月10日 株式会社情報試作室
+2024年4月29日 株式会社情報試作室
 
 1. データ形式について
 
@@ -69,8 +69,9 @@ jageocoder 用住所データベース利用規約（街区レベル）
         都道府県、郡、市区町村、大字、字の表記として登録しました。
 
         出典 アドレス・ベース・レジストリより
-        - 「日本 町字マスター データセット」 （2024-04-09 ダウンロード）
-            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-000000_g2-000003
+        - 「日本 町字マスター データセット」(2024-04-18更新)
+            https://catalog.registries.digital.go.jp/rsc/address/mt_town_all.csv.zip
+        - 2024-04-25 ダウンロード
         - 利用規約に基づき加工したデータを配布しています
             https://www.digital.go.jp/policies/base_registry_address_tos/
 

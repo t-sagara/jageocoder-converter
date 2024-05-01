@@ -1,3 +1,4 @@
+import bz2
 import csv
 import io
 from logging import getLogger
@@ -117,7 +118,7 @@ class ChibanConverter(BaseConverter):
 
         for pref_code in self.targets:
             output_filepath = os.path.join(
-                self.output_dir, '{}_chiban.txt'.format(pref_code))
+                self.output_dir, '{}_chiban.txt.bz2'.format(pref_code))
             if os.path.exists(output_filepath):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
@@ -125,7 +126,11 @@ class ChibanConverter(BaseConverter):
             input_filepath = os.path.join(
                 self.input_dir, '{}_chiban.zip'.format(pref_code))
 
-            with open(output_filepath, 'w', encoding='utf-8') as fout:
+            with bz2.open(
+                filename=output_filepath,
+                mode='wt',
+                encoding='utf-8'
+            ) as fout:
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_zipfile(input_filepath)

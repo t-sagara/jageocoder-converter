@@ -1,3 +1,4 @@
+import bz2
 import csv
 import glob
 import io
@@ -127,7 +128,7 @@ class JushoConverter(BaseConverter):
 
         for pref_code in self.targets:
             output_filepath = os.path.join(
-                self.output_dir, '{}_jusho.txt'.format(pref_code))
+                self.output_dir, '{}_jusho.txt.bz2'.format(pref_code))
             if os.path.exists(output_filepath):
                 logger.info("SKIP: {}".format(output_filepath))
                 continue
@@ -142,7 +143,11 @@ class JushoConverter(BaseConverter):
 
                 zipfiles.sort()
 
-            with open(output_filepath, 'w', encoding='utf-8') as fout:
+            with bz2.open(
+                filename=output_filepath,
+                mode='wt',
+                encoding='utf-8'
+            ) as fout:
                 self.set_fp(fout)
 
                 for jusho_filepath in zipfiles:
