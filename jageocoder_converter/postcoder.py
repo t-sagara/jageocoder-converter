@@ -74,6 +74,9 @@ class PostCoder(BaseConverter):
                         for args in reader:
                             citycode, postalcode, oaza = \
                                 args[0], args[2], args[8]
+                            if citycode not in self.jiscodes:
+                                continue
+
                             if '掲載がない' in oaza:
                                 oaza = ''
 
