@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import shutil
 import sys
-from typing import List, Union
+from typing import List, Optional, Union
 
 import jageocoder
 import jageocoder_converter
@@ -17,7 +17,11 @@ versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
 ver = "v" + versions.group(1) + versions.group(2)
 
 
-def build_gaiku(base_db_dir: Path, targets: List[Union[str, None]]):
+def build_gaiku(
+    base_db_dir: Path,
+    targets: List[Union[str, None]],
+    create_rtree: Optional[bool] = False
+) -> None:
     global ver
 
     for pref in targets:
@@ -53,8 +57,16 @@ def build_gaiku(base_db_dir: Path, targets: List[Union[str, None]]):
                 open(readme, "w") as fout:
             fout.write(fin.read())
 
+        if create_rtree:
+            jageocoder.init(db_dir=db_dir)
+            jageocoder.reverse(139.6917, 35.6896)
 
-def build_jukyo(base_db_dir: Path, targets: List[Union[str, None]]):
+
+def build_jukyo(
+    base_db_dir: Path,
+    targets: List[Union[str, None]],
+    create_rtree: Optional[bool] = False
+) -> None:
     global ver
 
     for pref in targets:
@@ -89,6 +101,10 @@ def build_jukyo(base_db_dir: Path, targets: List[Union[str, None]]):
         with open(Path(__file__).parent / "doc/README-jukyo.md", "r") as fin, \
                 open(readme, "w") as fout:
             fout.write(fin.read())
+
+        if create_rtree:
+            jageocoder.init(db_dir=db_dir)
+            jageocoder.reverse(139.6917, 35.6896)
 
 
 def create_zipfiles(base_db_dir: Path):
@@ -257,12 +273,13 @@ if __name__ == "__main__":
     do_build_jukyo = '--jukyo' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_create_zip = '--zip' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_create_index = '--index' in sys.argv[1:] or '--all' in sys.argv[1:]
+    do_create_rtree = '--rtree' in sys.argv[1:] or '--all' in sys.argv[1:]
     if do_build_gaiku | do_build_jukyo | do_create_zip | do_create_index:
         pass
     else:
         print((
             f"Usage: python {sys.argv[0]} [--db-dir=<dbdir>] "
-            "[--gaiku] [--jukyo] [--zip] [--index] [--all]"
+            "[--gaiku] [--jukyo] [--zip] [--index] [--rtree] [--all]"
         ))
         exit(1)
 
@@ -289,11 +306,11 @@ if __name__ == "__main__":
 
     all_prefs = ["{:02d}".format(x) for x in range(1, 48)] + [None]
     if do_build_gaiku:
-        build_gaiku(base_db_dir, targets=[None])
+        build_gaiku(base_db_dir, targets=[None], create_rtree=do_create_rtree)
 
     if do_build_jukyo:
         # build_jukyo(base_db_dir, targets=all_prefs)
-        build_jukyo(base_db_dir, targets=[None])
+        build_jukyo(base_db_dir, targets=[None], create_rtree=do_create_rtree)
 
     if do_create_zip:
         create_zipfiles(base_db_dir)

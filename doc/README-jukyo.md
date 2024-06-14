@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2024年4月29日 株式会社情報試作室
+2024年6月13日 株式会社情報試作室
 
 1. データ形式について
 
@@ -33,8 +33,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 位置参照方法ダウンロードサイト
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
-        - 大字町丁目レベル位置参照情報（令和5年） 17.0b （2024-04-04 ダウンロード）
-        - 街区レベル位置参照方法（令和5年） 22.0a （2024-04-04 ダウンロード）
+        - 大字町丁目レベル位置参照情報（令和5年） 17.0b （2024-06-13 ダウンロード）
+        - 街区レベル位置参照方法（令和5年） 22.0a （2024-06-13 ダウンロード）
 
     (3) Geolonia 住所データ
 
@@ -44,7 +44,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 Geolonia 住所データ
         https://geolonia.github.io/japanese-addresses/
-        - 2024-01 更新版 （2024-04-04 ダウンロード）
+        - v0.6.6 （2024-06-13 ダウンロード）
         - ライセンス CC-BY 4.0
         
     (4) 電子国土基本図（地名情報）「住居表示住所」
@@ -55,7 +55,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 電子国土基本図（地名情報）「住居表示住所」
         https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
-        - 2024-01-01 更新版 （2024-01-06 ダウンロード）
+        - 2024-03-01 更新版 （2024-06-13 ダウンロード）
         - 「測量法に基づく国土地理院長承認（使用）R 5JHs 31」による
 
     (5) 日本郵便郵便番号データ
@@ -65,7 +65,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2024-03-29 更新版 （2024-04-04 ダウンロード）
+        - 2024-05-31 更新版 （2024-06-13 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
@@ -96,11 +96,12 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
             https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_all.csv.zip
         - 「全国 住居表示・住所マスター位置参照拡張 データセット」(2024-03-15更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_pos_all.csv.zip
-        - 「（市区町村別）地番マスター データセット」(2024-04-26更新)
+        - 「（市区町村別）地番マスター データセット」(2024-05-09更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_cityXXXXXX.csv.zip
-        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-04-26更新)
+        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-05-09更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_pos_cityXXXXXX.csv.zip
-        - 2024-04-25 ダウンロード
+        - 地番マスター・地番マスター位置参照拡張以外: 2024-05-20 ダウンロード
+        - 地番マスター・地番マスター位置参照拡張: 2024-05-20 ダウンロード
         - 利用規約に基づき加工したデータを配布しています
             https://www.digital.go.jp/policies/base_registry_address_tos/
 

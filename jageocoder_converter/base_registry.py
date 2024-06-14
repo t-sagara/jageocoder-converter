@@ -615,14 +615,14 @@ class BaseRegistryConverter(BaseConverter):
                 not_found_files.append(target)
 
         # Download data files if the targets are missed.
-        if len(not_found_files) > 0:
-            self.get_address_all(self.input_dir)
+        self.get_address_all(self.input_dir, force=len(not_found_files) > 0)
 
         # Check Base-Registry CKAN.
         # Download list of "地番マスター" first, then csv files later.
         api_url = "https://catalog.registries.digital.go.jp/rc/api/3/action/"
         for pref_code in self.targets:
             download_urls = []
+            download_dir = os.path.join(self.input_dir, pref_code)
             count = 0
             query_url = "{}package_search?q={}&fq={}&sort=id+asc".format(
                 api_url,
@@ -642,7 +642,10 @@ class BaseRegistryConverter(BaseConverter):
                 with urllib.request.urlopen(url) as response:
                     result = json.loads(response.read())
                     for metadata in result['result']['results']:
-                        download_url = self.dataurl_from_metadata(metadata)
+                        download_url = self.dataurl_from_metadata(
+                            metadata=metadata,
+                            data_dir=download_dir,
+                        )
                         if download_url is not None:
                             logger.debug(
                                 f"  {download_url} is added to download list.")
@@ -652,5 +655,6 @@ class BaseRegistryConverter(BaseConverter):
 
             self.download(
                 urls=download_urls,
-                dirname=os.path.join(self.input_dir, pref_code)
+                dirname=download_dir,
+                overwrite=True,
             )

@@ -14,6 +14,7 @@ import zipfile
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.node import AddressNode
 import urllib.request
 
 from jageocoder_converter.data_manager import DataManager
@@ -44,6 +45,7 @@ class BaseConverter(object):
     quiet: bool
         Quiet mode, if set to True, skip all input.
     """
+    NONAME_COLUMN = f'{AddressNode.NONAME};{AddressLevel.OAZA},'
 
     seirei = [
         "札幌市", "仙台市", "さいたま市", "千葉市", "横浜市",
@@ -201,27 +203,37 @@ class BaseConverter(object):
                 print(json.dumps(
                     {jiscode: args[0]}, ensure_ascii=False), file=f)
 
-    def get_address_all(self, download_dir) -> None:
+    def get_address_all(
+            self,
+            download_dir,
+            force: bool = False) -> None:
         """
         Download "address_all.csv.zip" and extract
         to the specified directory.
         """
         target = os.path.join(download_dir, "address_all.csv.zip")
-        if not os.path.exists(target):
-            api_url = (
-                'https://catalog.registries.digital.go.jp/rc/'
-                'api/3/action/')
-            dataset_id = 'ba000001'
-            url = api_url + 'package_show?id={}'.format(dataset_id)
-            logger.debug("Getting metadata of package '{}'".format(dataset_id))
-            download_url = None
-            with urllib.request.urlopen(url) as response:
-                result = json.loads(response.read())
-                metadata = result['result']
-                download_url = self.dataurl_from_metadata(
-                    metadata, download_dir)
+        if os.path.exists(target) and force:
+            os.unlink(target)
 
-            self.download(urls=[download_url], dirname=download_dir)
+        api_url = (
+            'https://catalog.registries.digital.go.jp/rc/'
+            'api/3/action/')
+        dataset_id = 'ba000001'
+        url = api_url + 'package_show?id={}'.format(dataset_id)
+        logger.debug("Getting metadata of package '{}'".format(dataset_id))
+        download_url = None
+        with urllib.request.urlopen(url) as response:
+            result = json.loads(response.read())
+            metadata = result['result']
+            download_url = self.dataurl_from_metadata(
+                metadata, download_dir)
+
+        if download_url:
+            self.download(
+                urls=[download_url],
+                dirname=download_dir,
+                overwrite=True
+            )
 
         # Extract "address_all_csv.zip"
         with zipfile.ZipFile(target) as z:
@@ -307,8 +319,11 @@ class BaseConverter(object):
 
         return True
 
-    def download(self, urls: List[str],
-                 dirname: Union[str, bytes, os.PathLike]) -> None:
+    def download(
+        self, urls: List[str],
+        dirname: Union[str, bytes, os.PathLike],
+        overwrite: bool = False,
+    ) -> None:
         """
         Download files from web specified by urls and save them under dirname.
 
@@ -326,7 +341,7 @@ class BaseConverter(object):
             basename = os.path.basename(url)
             filename = os.path.join(dirname, basename)
 
-            if os.path.exists(filename):
+            if os.path.exists(filename) and overwrite is False:
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
                 continue
@@ -469,9 +484,19 @@ class BaseConverter(object):
         # line = " ".join(keys) + "\t"
         line = ""
 
+        prev_level = 0
         for name in names:
-            if name[1] != '':
-                line += '{:s};{:d},'.format(name[1], name[0])
+            if name[1] == '':
+                continue
+
+            # Insert NONAME-Oaza when a block name comes immediately
+            # after the municipality name.
+            level = name[0]
+            if prev_level <= AddressLevel.WARD and level >= AddressLevel.BLOCK:
+                line += self.NONAME_COLUMN
+
+            line += '{:s};{:d},'.format(name[1], level)
+            prev_level = level
 
         if self.priority is not None:
             line += '!{:02d},'.format(self.priority)

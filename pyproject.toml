@@ -12,7 +12,7 @@ jaconv = ">=0.3.4"
 docopt = ">=0.6.2"
 portabletab = ">=0.3.5"
 pyproj = ">=3.4.1"
-jageocoder = ">=2.1.0"
+jageocoder = ">=2.1.7.post1"
 certifi = ">=2023.7.22"
 
 [tool.poetry.group.dev.dependencies]

@@ -92,18 +92,18 @@ class CityConverter(BaseConverter):
                 if rows[0] in ('geonlp_id', 'entry_id', 'geolod_id'):
                     continue
 
-                jiscode, name = rows[1], rows[6]
+                prefcode, name = rows[1], rows[6]
                 lon, lat = rows[11], rows[12]
                 code = rows[8]
-                self.records[jiscode] = [[
+                self.records[prefcode] = [[
                     [[AddressLevel.PREF, name]], lon, lat, code]]
 
                 # Register names that omit '都', '府' and '県' also
                 name = rows[2]
                 if name != '北海':
-                    self.records[jiscode].append([
+                    self.records[prefcode].append([
                         [[AddressLevel.PREF, name]],
-                        lon, lat, code])
+                        lon, lat, ''])
 
     def read_city_file(self):
         """

@@ -136,6 +136,17 @@ class GaikuConverter(BaseConverter):
                 self.print_line(uppers + names, x, y)
                 return
 
+        if jcode == '08208':
+            # 龍ケ崎市：旧龍ケ崎町の非表示小字が大字として登録されている
+            if args[2] in (
+                    "愛宕", "愛戸", "大座", "柏ケ作", "上町",
+                    "川余郷", "下地内", "光順田", "古城", "米町",
+                    "下土井", "下町", "新町", "直鮒", "砂町",
+                    "高砂", "出し山", "立野", "田町", "寺後",
+                    "中谷原", "奈戸岡", "根町", "姫宮", "平畑",
+                    "谷道", "野原", "横町", "六斗蒔"):
+                args[2] = '（大字なし）'
+
         if args[2] in ('', '（大字なし）'):
             names.append([AddressLevel.OAZA, AddressNode.NONAME])
         else:
