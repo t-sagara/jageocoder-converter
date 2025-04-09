@@ -1,24 +1,24 @@
 [tool.poetry]
 name = "jageocoder-converter"
-version = "2.1.1"
+version = "2.1.2"
 description = "Dictionary generator for jageocoder."
 authors = ["\"Takeshi Sagara\" <sagara@info-proto.com>"]
 readme = "README.md"
 packages = [{include = "jageocoder_converter"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<4.0"
+python = ">=3.9,<3.13"
 jaconv = ">=0.3.4"
 docopt = ">=0.6.2"
-portabletab = ">=0.3.5"
-pyproj = ">=3.4.1"
-jageocoder = ">=2.1.7.post1"
-certifi = ">=2023.7.22"
+PortableTab = ">=0.3.5"
+pyproj = ">=3.5.0"
+jageocoder = ">=2.1.8"
+certifi = ">=2025.1.31"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.2.2"
-flake8 = ">=6.0.0"
-twine = ">=4.0.2"
+pytest = ">=8.3.5"
+flake8 = ">=7.1.2"
+twine = ">=6.1.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -235,7 +235,7 @@ class BaseConverter(object):
                 overwrite=True
             )
 
-        # Extract "address_all_csv.zip"
+        # Extract all "*.zip" files
         with zipfile.ZipFile(target) as z:
             for filename in z.namelist():
                 if not filename.lower().endswith('.zip'):
@@ -714,7 +714,7 @@ class BaseConverter(object):
 
         return values
 
-    @ lru_cache
+    @lru_cache
     def guessAza(self, name: str, jcode: str = '') -> str:
         """
         Analyze the Aza-name and return the split-formatted one.

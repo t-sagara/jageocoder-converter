@@ -1,4 +1,5 @@
 import csv
+import datetime
 from functools import lru_cache
 import io
 from logging import getLogger
@@ -41,7 +42,16 @@ class PostCoder(BaseConverter):
 
         zipfilepath = os.path.join(
             self.input_dir, 'ken_all.zip')
+        do_download = False
         if not os.path.exists(zipfilepath):
+            logger.info("Japanpost data doesn't exist.")
+            do_download = True
+        elif datetime.datetime.now() - datetime.datetime.fromtimestamp(
+                os.stat(zipfilepath).st_mtime) > datetime.timedelta(days=30):
+            logger.info("Japanpost data is older than 30 days.")
+            do_download = True
+
+        if do_download:
             self.download(
                 urls=[url],
                 dirname=self.input_dir

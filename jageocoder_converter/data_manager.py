@@ -2,6 +2,7 @@ import bz2
 from contextlib import contextmanager
 import csv
 import glob
+import heapq
 import io
 import json
 from logging import getLogger
@@ -142,7 +143,7 @@ class DataManager(object):
         if self.tmp_text:
             self.tmp_text.close()
 
-        self.tmp_text = tempfile.TemporaryFile(mode='w+b')
+        self.tmp_text = tempfile.TemporaryFile(mode='w+t')
 
     def sort_data(self, prefcode: str) -> None:
         """
@@ -155,13 +156,28 @@ class DataManager(object):
         prefcode: str
             The target prefecture code (JISX0401).
         """
+
+        def sort_save_chunk(lines: List[str]) -> os.PathLike:
+            lines.sort()
+            tmpf = tempfile.NamedTemporaryFile(delete=False, mode='w')
+            tmpf.writelines(lines)
+            tmpf.close()
+            return tmpf.name
+
         logger.info('Sorting text data in {}'.format(
             os.path.join(self.text_dir, prefcode + '_*.txt.bz2')))
-        records = []
+
+        # Write chunked data to tempfiles
+        temp_files = []
+        lines = []
+        size = 0
         for filename in glob.glob(
                 os.path.join(self.text_dir, prefcode + '_*.txt.bz2')):
-            with bz2.open(filename, mode='rt') as fb_in:
-                for line in fb_in:
+            logger.info("   ... reading '{}'".format(
+                os.path.basename(filename)
+            ))
+            with bz2.open(filename, mode='rt') as fin:
+                for line in fin:
                     if line[0] == '#':  # Skip as comment
                         continue
 
@@ -170,11 +186,27 @@ class DataManager(object):
                         itaiji_converter.standardize(x[0]) + f";{x[1]}"
                         for x in names
                     ]) + f"\t{line}"
-                    records.append(newline.encode(encoding='utf-8'))
+                    chunk = newline.encode(encoding='utf-8')
+                    lines.append(newline)
+                    size += len(chunk)
+                    if size >= 100 * 1024 * 1024:  # 100MB
+                        temp_files.append(sort_save_chunk(lines))
+                        lines.clear()
+                        size = 0
 
-        records.sort()
-        for record in records:
-            self.tmp_text.write(record)
+        if lines:
+            temp_files.append(sort_save_chunk(lines))
+
+        # Merge sort
+        logger.info("   ... merging {} chunks".format(len(temp_files)))
+        fins = [open(fname, 'r') for fname in temp_files]
+        self.tmp_text.writelines(heapq.merge(*fins))
+        for f in fins:
+            f.close()
+
+        # Remove tempfiles
+        for fname in temp_files:
+            os.remove(fname)
 
     def write_database(self) -> None:
         """
@@ -191,8 +223,7 @@ class DataManager(object):
         self.update_array = {}
 
         # Read all texts for the prefecture
-        fp = io.TextIOWrapper(self.tmp_text, encoding='utf-8', newline='')
-        reader = csv.reader(fp)
+        reader = csv.reader(self.tmp_text)
         for args in reader:
             if "\t" not in args[0]:
                 print(args)

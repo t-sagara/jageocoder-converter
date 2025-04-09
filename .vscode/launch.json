@@ -119,6 +119,18 @@
             "justMyCode": false
         },
         {
+            "name": "Build 京都府 dictionary",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_kyoto",
+                "26"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Build 大阪府/街区レベル dictionary",
             "type": "debugpy",
             "request": "launch",
@@ -132,6 +144,18 @@
             ],
             "justMyCode": false
         },
+        {
+            "name": "Build 奈良県 dictionary",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder_converter",
+            "args": [
+                "-q",
+                "--db-dir=db_nara",
+                "29"
+            ],
+            "justMyCode": false
+        },        
         {
             "name": "Test Capnp records",
             "type": "debugpy",

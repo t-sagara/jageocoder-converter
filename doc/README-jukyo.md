@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2024年6月13日 株式会社情報試作室
+2025年4月10日 株式会社情報試作室
 
 1. データ形式について
 
@@ -55,7 +55,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 電子国土基本図（地名情報）「住居表示住所」
         https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
-        - 2024-03-01 更新版 （2024-06-13 ダウンロード）
+        - 2025-03-26 更新版 （2025-04-03 ダウンロード）
         - 「測量法に基づく国土地理院長承認（使用）R 5JHs 31」による
 
     (5) 日本郵便郵便番号データ
@@ -65,7 +65,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2024-05-31 更新版 （2024-06-13 ダウンロード）
+        - 2025-03-31 更新版 （2025-04-03 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
@@ -84,27 +84,38 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         取得し、位置参照情報として利用しました。
 
         出典 アドレス・ベース・レジストリより
-        - 「日本 町字マスター データセット」(2024-04-18更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_town_all.csv.zip
-        - 「全国 町字マスター位置参照拡張 データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_town_pos_all.csv.zip
-        - 「全国 住居表示・街区マスター データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_blk_all.csv.zip
-        - 「全国 住居表示・街区マスター位置参照拡張 データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_blk_pos_all.csv.zip
-        - 「全国 住居表示・住所マスター データセット」(2024-03-15更新)
+        - 「日本 町字マスター データセット」(2025-03-31更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-000000_g2-000003
+        - 「全国　町字マスター位置参照拡張　データセット」(2025-04-01更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba000004
+        - 「全国　住居表示-街区マスター　データセット」(2024-03-15更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba000002
+        - 「全国　住居表示-街区マスター位置参照拡張　データセット」(2024-03-15更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba000005
+        - 「全国 住居表示-住所マスター データセット」(2024-03-15更新)
             https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_all.csv.zip
-        - 「全国 住居表示・住所マスター位置参照拡張 データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_pos_all.csv.zip
-        - 「（市区町村別）地番マスター データセット」(2024-05-09更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_cityXXXXXX.csv.zip
-        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-05-09更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_parcel_pos_cityXXXXXX.csv.zip
-        - 地番マスター・地番マスター位置参照拡張以外: 2024-05-20 ダウンロード
-        - 地番マスター・地番マスター位置参照拡張: 2024-05-20 ダウンロード
+        - 「全国　住居表示-住居マスター位置参照拡張 データセット」(2024-03-15更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba000006
+        - 2025-04-03 ダウンロード
         - 利用規約に基づき加工したデータを配布しています
             https://www.digital.go.jp/policies/base_registry_address_tos/
 
+    (7) 登記所備付地図データ
+
+        法務省が提供する登記所備付地図データを、デジタル庁が加工し、
+        「レジストリカタログ」にて公開している市区町村別の「地番マスター」、
+        「地番マスター位置参照拡張」を取得し、位置参照情報として利用しました。
+
+        出典 登記所備付地図データ（法務省）
+        - 「（市区町村別）地番マスター データセット」(2024-05-09更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-xxxxxx_g2-000010
+            ただし xxxxxx は地方公共団体コード
+        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-05-09更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-xxxxxx_g2-000011
+            ただし xxxxxx は地方公共団体コード
+        - 2025-04-03 ダウンロード
+        - 利用規約に基づき加工したデータを配布しています
+            https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku
 
 3. データの利用条件
 
@@ -121,13 +132,14 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 (4) ［利用］
     本データを常時利用するアプリケーションやサービスを開発し
     公開する場合、利用者から見えるところ（ヘルプページ等）に
-    以下の文言を記載してください。国土交通省の利用規約も満たします。
+    以下の文言を記載してください。
 
     「位置参照情報（大字町丁目・街区レベル）令和5年」（国土交通省）、
     「電子国土基本図（地名情報）住居表示住所」（国土地理院）、
     「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/、
     「アドレス・ベース・レジストリ」（デジタル庁）
     https://www.digital.go.jp/policies/base_registry_address_tos/
+    「登記所備付地図データ」（法務省）
     をもとに、株式会社情報試作室が加工した
     jageocoder 用住所データベース（住居表示レベル）を利用
 
@@ -140,7 +152,10 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     国土地理院「電子国土基本図住居表示住所」を加工, https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
     Geolonia Inc. 「Geolonia 住所データ」を加工, https://geolonia.github.io/japanese-addresses/
     「アドレス・ベース・レジストリ」を加工,
-    https://www.digital.go.jp/policies/base_registry_address_tos/
+    https://www.digital.go.jp/policies/base_registry_address
+    「登記所備付地図データ」をデジタル庁が加工したデータを再加工,
+    https://front.geospatial.jp/moj-chizu-xml-readme/
+
 
 (6) ［免責］
     本データを利用した結果生じたいかなる損害についても

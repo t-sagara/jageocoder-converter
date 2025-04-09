@@ -5,6 +5,7 @@ import glob
 import json
 from logging import getLogger
 import os
+import re
 import tempfile
 import time
 from typing import Union, Optional, List
@@ -43,6 +44,37 @@ class BaseRegistryConverter(BaseConverter):
         self.fp = None
         self.blocks = None
         self._processed_azaid = None
+        self._lg_names = {}
+
+    def set_lgname(self, code: str, names: list):
+        """
+        Set local-government names to the code.
+        """
+        code = code[0:5]
+        if code not in self._lg_names:
+            lg_name = [x for x in names if x[0] < AddressLevel.OAZA]
+            self._lg_names[code] = lg_name
+
+    def get_lgname(self, code: str):
+        """
+        Get local-government names of the code.
+        """
+        code = code[0:5]
+        if code in self._lg_names:
+            return self._lg_names[code]
+
+        # Net set yet... retrieve aza-master.
+        pos = self.manager.aza_master.binary_search(
+            code + '9999999'
+        )
+        _aza_record = self.manager.aza_master.get_record(pos)
+        if _aza_record.code[0:5] != code:
+            return None
+
+        _cand = json.loads(_aza_record.names)
+        lg_name = [x for x in _cand if x[0] < AddressLevel.OAZA]
+        self._lg_names[code] = lg_name
+        return lg_name
 
     def confirm(self) -> bool:
         """
@@ -55,7 +87,7 @@ class BaseRegistryConverter(BaseConverter):
         )
         return super().confirm(terms)
 
-    def process_lines_01(self, fin, pref_code):
+    def process_lines_in_machiaza(self, fin, pref_code):
         """
         Parse lines and output address nodes in 'mt_town_all.csv'.
 
@@ -97,6 +129,78 @@ class BaseRegistryConverter(BaseConverter):
         36, src_code, 原典資料コード
         37, post_code, 郵便番号
         38, remarks, 備考
+        """
+        reader = csv.DictReader(fin)
+        for row in reader:
+            citycode = row["lg_code"][0:5]
+            if citycode[0:2] != pref_code:
+                continue
+
+            aza_id = row["machiaza_id"]
+            if aza_id in self._processed_azaid:
+                continue
+
+            names = self.names_from_code(citycode + aza_id)
+            x, y = 999.9, 999.9
+            note = 'aza_id:{}'.format(aza_id)
+            self.print_line_with_postcode(names, x, y, note)
+
+    def process_lines_in_machiaza_fullset(self, fin, pref_code):
+        """
+        Parse lines and output address nodes in 'mt_town_fullset_all.csv'.
+
+        1, lg_code, 全国地方公共団体コード
+        2, machiaza_id, 町字ID
+        3, machiaza_type, 町字区分コード
+        4, pref, 都道府県名
+        5, pref_kana, 都道府県名_カナ
+        6, pref_roma, 都道府県名_英字
+        7, county, 郡名
+        8, county_kana, 郡名_カナ
+        9, county_roma, 郡名_英字
+        10, city, 市区町村名
+        11, city_kana, 市区町村名_カナ
+        12, city_roma, 市区町村名_英字
+        13, ward, 政令市区名
+        14, ward_kana, 政令市区名_カナ
+        15, ward_roma, 政令市区名_英字
+        16, oaza_cho, 大字・町名
+        17, oaza_cho_kana, 大字・町名_カナ
+        18, oaza_cho_roma, 大字・町名_英字
+        19, chome, 丁目名
+        20, chome_kana, 丁目名_カナ
+        21, chome_number, 丁目名_数字
+        22, koaza, 小字名
+        23, koaza_kana, 小字名_カナ
+        24, koaza_roma, 小字名_英字
+        25, machiaza_dist, 同一町字識別情報
+        26, rsdt_addr_flg, 住居表示フラグ
+        27, rsdt_addr_mtd_code, 住居表示方式コード (1:街区方式,2:道路方式,0:住居表示でない)
+        28, oaza_cho_aka_flg, 大字・町名_通称フラグ (1:通称,0:通称でない)
+        29, koaza_aka_code, 小字名_通称コード (0:通称でない,1:通称名,2:京都通り名,3:地名情報の字または通称)
+        30, oaza_cho_gsi_uncmn, 大字・町名_電子国土基本図外字
+        31, koaza_gsi_uncmn, 小字名_電子国土基本図外字
+        32, status_flg, 状態フラグ (0:自治体確認待ち,1:地方自治法の町若しくは字,2:町若しくは字に非該当,3:不明)
+        33, wake_num_flg, 起番フラグ (1:起番,2:非起番,0:登記情報に存在しない)
+        34, efct_date, 効力発生日
+        35, ablt_date, 廃止日
+        36, src_code, 原典資料コード
+        37, post_code, 郵便番号
+        38, oaza_cho_uncmn_reg, 大字・町名_登記統一文字
+        39, oaza_cho_uncmn_mj, 大字・町名_MJ文字図形名
+        40, oaza_cho_uncmn_type, 大字・町名_任意外字コード種別
+        41, oaza_cho_uncmn_code, 大字・町名_任意外字コード
+        42, koaza_cho_uncmn_reg, 小字名_登記統一文字
+        43, koaza_uncmn_mj, 小字名_MJ文字図形名
+        44, koaza_uncmn_type, 小字名_任意外字コード種別
+        45, koaza_uncmn_code, 小字名_任意外字コード
+        46, alias_oaza, 別名称大字・町名
+        47, alias_oaza_kana, 別名称大字・町名_カナ
+        48, alias_oaza_rome, 別名称大字・町名_英字
+        49, alias_koaza, 別名称小字名
+        50, alias_koaza_kana, 別名称小字名_カナ
+        51, alias_koaza_rome, 別名称小字名_英字
+        32, remarks, 備考
         """
         reader = csv.DictReader(fin)
         for row in reader:
@@ -156,7 +260,7 @@ class BaseRegistryConverter(BaseConverter):
             self._processed_azaid.add(aza_id)
             self.print_line_with_postcode(names, x, y, note)
 
-    def process_lines_07(self, fin):
+    def process_lines_in_gaiku(self, fin):
         """
         Parse lines and output address nodes in 'mt_rsdtdsp_blk_pos_pref01.csv'.
 
@@ -205,7 +309,40 @@ class BaseRegistryConverter(BaseConverter):
                 row["rep_lat"], row["rep_lon"])
             block_name = row["pos_blk_prc_num"] + \
                 ("番" if row["rsdt_addr_flg"] == "1" else "番地")
-            names = copy.copy(self.names_from_code(aza_code))
+            _cand = self.names_from_code(aza_code)
+            if _cand is not None:
+                names = copy.copy(_cand)
+            else:
+                # 宮城県名取市閖上のコードは '042070004000'
+                # '同一丁目' は '042070004001' のはずだが町字マスタにない
+                m = re.match(
+                    r'(.+)([一二三四五六七八九十]+丁目)$',
+                    row["pos_oaza_cho_chome"])
+                if m:
+                    _cand = self.names_from_code(aza_code[0:-2] + '00')
+                    if _cand is not None and _cand[-1][1] == m.group(1):
+                        names = copy.copy(_cand)
+                        names.append([AddressLevel.AZA, m.group(2)])
+
+            if _cand is None:
+                # 町字マスターに該当する町字コードの記載がない
+                names = copy.copy(self.get_lgname(aza_code))
+                if names is None:
+                    message = "Cannot process '{}'. ".format(fin.name)
+                    message += "Reason: '{}'(code:{}/{}) is not found in 'town_all.csv'.".format(
+                        row["pos_oaza_cho_chome"],
+                        row["lg_code"],
+                        row["machiaza_id"],
+                    )
+                    raise RuntimeError(message)
+
+                if row["pos_oaza_cho_chome"]:
+                    names.append(
+                        [AddressLevel.OAZA, row["pos_oaza_cho_chome"]])
+
+                if row["pos_koaza_aka"]:
+                    names.append([AddressLevel.AZA, row["pos_koaza_aka"]])
+
             names.append([AddressLevel.BLOCK, block_name])
             self.blocks[block_code] = names
             if not x or not y:
@@ -309,7 +446,29 @@ class BaseRegistryConverter(BaseConverter):
                         "city", "ward", "oaza_cho", "chome",
                         "koaza", "blk_num", "rsdt_num", "rsdt_num2")]))
                 # logger.warning(msg)
-                names = copy.copy(self.names_from_code(codes["aza"]))
+
+                _cand = self.names_from_code(codes["aza"])
+                if _cand is None:
+                    names = copy.copy(self.get_lgname(codes["aza"]))
+                    if names is None:
+                        logger.warning(
+                            "Citycode '{}' is not registered. Skip record '{}'.".format(
+                                codes["aza"][0:5],
+                                ','.join(row)
+                            )
+                        )
+                        continue
+
+                    if row["oaza_cho"]:
+                        names.append([AddressLevel.OAZA, row["oaza_cho"]])
+
+                    if row["koaza"]:
+                        names.append([AddressLevel.AZA, row["koaza"]])
+
+                else:
+                    names = copy.copy(_cand)
+
+                self.set_lgname(codes["aza"], names)
                 if row["blk_num"]:
                     # block_name = row["blk_num"] + \
                     #     ("番" if row["rsdt_addr_flg"] == "1" else "番地")
@@ -426,7 +585,31 @@ class BaseRegistryConverter(BaseConverter):
                 y, x = transformer.transform(
                     pos_row["rep_lat"], pos_row["rep_lon"])
 
-            names = copy.copy(self.names_from_code(codes["aza"]))
+            _cand = self.names_from_code(codes["aza"])
+            if _cand is None:
+                # 町字ID が「町字マスター」にない場合
+                # 市区町村名まで町字マスター記載の表記を利用し、
+                # 大字以下を追加する
+                names = copy.copy(self.get_lgname(codes["aza"]))
+                if names is None:
+                    logger.warning(
+                        "Citycode '{}' is not registered. Skip record '{}'.".format(
+                            codes["aza"][0:5],
+                            ','.join(row)
+                        )
+                    )
+                    continue
+
+                if row["oaza_cho"]:
+                    names.append([AddressLevel.OAZA, row["oaza_cho"]])
+
+                if row["koaza"]:
+                    names.append([AddressLevel.AZA, row["koaza"]])
+
+            else:
+                names = copy.copy(_cand)
+
+            self.set_lgname(codes["aza"], names)
             if row["prc_num1"]:
                 # block_name = row["prc_num1"] + \
                 #     ("番" if row["rsdt_addr_flg"] == "1" else "番地")
@@ -481,15 +664,27 @@ class BaseRegistryConverter(BaseConverter):
                         self.process_lines_06(fin)
 
                 zip_filename = os.path.join(
-                    self.input_dir, "mt_town_all.csv.zip")
+                    self.input_dir, "mt_town_fullset_all.csv.zip")
+                if os.path.exists(zip_filename):
+                    with bz2.open(
+                            filename=output_filepath,
+                            mode='at', encoding='utf-8'
+                        ) as fout, \
+                            self.manager.open_csv_in_zipfile(zip_filename) as fin:
+                        self.fp = fout
+                        self.process_lines_in_machiaza_fullset(fin, pref_code)
 
-                with bz2.open(
-                        filename=output_filepath,
-                        mode='at', encoding='utf-8'
-                    ) as fout, \
-                        self.manager.open_csv_in_zipfile(zip_filename) as fin:
-                    self.fp = fout
-                    self.process_lines_01(fin, pref_code)
+                else:
+                    zip_filename = os.path.join(
+                        self.input_dir, "mt_town_all.csv.zip")
+
+                    with bz2.open(
+                            filename=output_filepath,
+                            mode='at', encoding='utf-8'
+                        ) as fout, \
+                            self.manager.open_csv_in_zipfile(zip_filename) as fin:
+                        self.fp = fout
+                        self.process_lines_in_machiaza(fin, pref_code)
 
             # 住居表示－街区マスター位置参照拡張
             output_filepath = os.path.join(
@@ -515,7 +710,7 @@ class BaseRegistryConverter(BaseConverter):
                         ) as fout, \
                             self.manager.open_csv_in_zipfile(nt.name) as fin:
                         self.fp = fout
-                        self.process_lines_07(fin)
+                        self.process_lines_in_gaiku(fin)
 
             # 住居表示・住居マスター，位置参照拡張
             if os.path.exists(output_filepath_rsdt):
@@ -598,6 +793,8 @@ class BaseRegistryConverter(BaseConverter):
         # 0000006: 町字マスター位置参照拡張
         # 0000007: 住居表示－街区マスター位置参照拡張
         # 0000008: 住居表示－住居マスター位置参照拡張
+        return
+
         targets = (
             'mt_city_all.csv.zip',
             'mt_pref_all.csv.zip',

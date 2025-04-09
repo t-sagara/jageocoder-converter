@@ -160,6 +160,8 @@ class JushoConverter(BaseConverter):
         '電子国土基本図（地名情報）「住居表示住所」の閲覧・ダウンロード'
         https://saigai.gsi.go.jp/jusho/download/
         """
+        return
+
         urlbase = 'https://saigai.gsi.go.jp/jusho/download/pref/'
         urls = []
         for pref_code in self.targets:

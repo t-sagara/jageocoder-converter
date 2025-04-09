@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import shutil
 import sys
+import tempfile
 from typing import List, Optional, Union
 
 import jageocoder
@@ -14,7 +15,8 @@ import jageocoder_converter
 logger = logging.getLogger(__name__)
 
 versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
-ver = "v" + versions.group(1) + versions.group(2)
+suffix = date.strftime(date.today(), '%Y%m%d')
+ver = "v" + versions.group(1) + versions.group(2) + "." + suffix
 
 
 def build_gaiku(
@@ -146,16 +148,32 @@ def create_zipfiles(base_db_dir: Path):
         else:  # When all files exist
             dest_dir = (base_db_dir / "v2")
             dest_dir.mkdir(mode=0o755, exist_ok=True)
+
+            # Create zipped datafile
             target = dest_dir / Path(v2_dir).name
             if target.with_suffix(".zip").exists():
                 logger.info(f"File '{target}' exists, skip archiving.")
             else:
-                logger.info(f"Archiving '{v2_dir}'")
-                shutil.make_archive(
-                    base_name=target,
-                    format="zip",
-                    root_dir=v2_dir,
-                )
+                with tempfile.TemporaryDirectory() as tmpd:
+                    # Escape rtree.* files
+                    escaped_files = []
+                    for fname in glob.glob(f"{v2_dir}/rtree.*"):
+                        basefname = Path(fname).name
+                        to_fname = f"{tmpd}/{basefname}"
+                        shutil.move(fname, to_fname)
+                        escaped_files.append((fname, to_fname))
+
+                    # Create zip archive
+                    logger.info(f"Archiving '{v2_dir}'")
+                    shutil.make_archive(
+                        base_name=target,
+                        format="zip",
+                        root_dir=v2_dir,
+                    )
+
+                    # Unescape rtree.* files
+                    for escaped in escaped_files:
+                        shutil.move(escaped[1], escaped[0])
 
 
 def filelist_html(base_db_dir: Path) -> str:
@@ -318,12 +336,14 @@ if __name__ == "__main__":
     if do_create_index:
         v1_dir = base_db_dir / "v1"
         if v1_dir.exists():
+            logger.info("Writing 'v1_dir/index.html'")
             html = filelist_html(v1_dir)
             with open(v1_dir / "index.html", "w") as f:
                 f.write(html)
 
         v2_dir = base_db_dir / "v2"
         if v2_dir.exists():
+            logger.info("Writing 'v2_dir/index.html'")
             html = filelist_html(v2_dir)
             with open(v2_dir / "index.html", "w") as f:
                 f.write(html)

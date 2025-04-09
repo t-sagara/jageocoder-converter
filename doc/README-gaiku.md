@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（街区レベル）
-2024年6月13日 株式会社情報試作室
+2025年4月10日 株式会社情報試作室
 
 1. データ形式について
 
@@ -54,14 +54,14 @@ jageocoder 用住所データベース利用規約（街区レベル）
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2024-05-31 更新版 （2024-06-13 ダウンロード）
+        - 2025-03-31 更新版 （2025-04-03 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
     (5) アドレス・ベース・レジストリ
 
         デジタル庁が公開している「日本 町字マスター データセット」より、
-        字レベルの住所要素に対応する字ID（7桁コード）とを取得し、
+        字レベルの住所要素に対応する字ID（7桁コード）を取得し、
         大字町丁目レベル位置参照情報および Geolonia 住所データの
         対応する要素に付与しました。
 
@@ -69,9 +69,9 @@ jageocoder 用住所データベース利用規約（街区レベル）
         都道府県、郡、市区町村、大字、字の表記として登録しました。
 
         出典 アドレス・ベース・レジストリより
-        - 「日本 町字マスター データセット」(2024-04-18更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_town_all.csv.zip
-        - 2024-06-13 ダウンロード
+        - 「日本 町字マスター データセット」(2025-03-31更新)
+            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-000000_g2-000003
+        - 2025-04-03 ダウンロード
         - 利用規約に基づき加工したデータを配布しています
             https://www.digital.go.jp/policies/base_registry_address_tos/
 
