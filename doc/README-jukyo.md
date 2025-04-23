@@ -1,5 +1,5 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2025年4月10日 株式会社情報試作室
+2025年4月23日 株式会社情報試作室
 
 1. データ形式について
 
@@ -31,10 +31,12 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         国交省の「位置参照情報ダウンロード」サイトから取得したデータより、
         大字レベルと街区レベルの住所要素名および座標を抽出しました。
 
-        出典 位置参照方法ダウンロードサイト
+        出典 位置参照情報ダウンロードサイト
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         - 大字町丁目レベル位置参照情報（令和5年） 17.0b （2024-06-13 ダウンロード）
-        - 街区レベル位置参照方法（令和5年） 22.0a （2024-06-13 ダウンロード）
+        - 街区レベル位置参照情報（令和5年） 22.0a （2024-06-13 ダウンロード）
+        - 利用規約 https://nlftp.mlit.go.jp/ksj/other/agreement.html#agree-03
+        - ライセンス 政府標準利用規約（第2.0版）
 
     (3) Geolonia 住所データ
 
@@ -56,7 +58,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         出典 電子国土基本図（地名情報）「住居表示住所」
         https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
         - 2025-03-26 更新版 （2025-04-03 ダウンロード）
-        - 「測量法に基づく国土地理院長承認（使用）R 5JHs 31」による
+        - ライセンス 「測量法に基づく国土地理院長承認（使用）R 7JHs 54」による
+        - 利用規約 https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html
 
     (5) 日本郵便郵便番号データ
 
@@ -97,8 +100,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         - 「全国　住居表示-住居マスター位置参照拡張 データセット」(2024-03-15更新)
             https://catalog.registries.digital.go.jp/rc/dataset/ba000006
         - 2025-04-03 ダウンロード
-        - 利用規約に基づき加工したデータを配布しています
-            https://www.digital.go.jp/policies/base_registry_address_tos/
+        - ライセンス 政府標準利用規約（第2.0版）
+        - 利用規約 https://www.digital.go.jp/policies/base_registry_address_tos/
 
     (7) 登記所備付地図データ
 
@@ -114,16 +117,20 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
             https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-xxxxxx_g2-000011
             ただし xxxxxx は地方公共団体コード
         - 2025-04-03 ダウンロード
-        - 利用規約に基づき加工したデータを配布しています
-            https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku
+        - ライセンス 政府標準利用規約（第2.0版）
+        - 利用規約 https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku
 
 3. データの利用条件
 
 (1) 本データは、弊社が国土地理院より下記の承認を受けて作成し
     提供するものです。
-   「測量法に基づく国土地理院長承認（使用）R 5JHs 31」
+   「測量法に基づく国土地理院長承認（使用）R 7JHs 54」
 
 (2) 本データは、商用・非商用を問わず利用することができます。
+    ただし利用しているデータの禁止事項に該当する、以下の場合を除きます。
+    - 反社会的勢力、およびその関係者・協力者による利用
+    - いずれかのデータの提供者が不適切と判断した組織・個人による利用
+    - 法令または公序良俗に違反、または違反するおそれのある目的での利用
 
 (3) ［複製］
     任意の台数のサーバ・PC等に複製・配置・配布することができますが、

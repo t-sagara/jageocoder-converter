@@ -7,13 +7,13 @@ readme = "README.md"
 packages = [{include = "jageocoder_converter"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.10,<3.13"
+certifi = ">=2025.1.31"
+docopt-ng = "^0.9.0"
 jaconv = ">=0.3.4"
-docopt = ">=0.6.2"
+jageocoder = ">=2.1.8"
 PortableTab = ">=0.3.5"
 pyproj = ">=3.5.0"
-jageocoder = ">=2.1.8"
-certifi = ">=2025.1.31"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3.5"

@@ -291,7 +291,7 @@ if __name__ == "__main__":
     do_build_jukyo = '--jukyo' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_create_zip = '--zip' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_create_index = '--index' in sys.argv[1:] or '--all' in sys.argv[1:]
-    do_create_rtree = '--rtree' in sys.argv[1:] or '--all' in sys.argv[1:]
+    do_create_rtree = '--rtree' in sys.argv[1:]  # or '--all' in sys.argv[1:]
     if do_build_gaiku | do_build_jukyo | do_create_zip | do_create_index:
         pass
     else:
