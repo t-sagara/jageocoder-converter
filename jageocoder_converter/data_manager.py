@@ -539,22 +539,22 @@ class DataManager(object):
         # Build temporary lookup table
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
-        pos = AddressNode.ROOT_NODE_ID + 1
-        while pos < tree.address_nodes.count_records():
-            node = tree.address_nodes.get_record(pos=pos)
+        node_id = AddressNode.ROOT_NODE_ID + 1
+        while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
+            node = tree.address_nodes.get_record(id=node_id)
             if node.level <= AddressLevel.OAZA:
                 tmp_id_name_table[node.id] = node
                 if node.level < AddressLevel.OAZA:
-                    pos += 1
+                    node_id += 1
                 else:
-                    pos = node.sibling_id
+                    node_id = node.sibling_id
 
             else:
-                parent = tree.address_nodes.get_record(pos=node.parent_id)
+                parent = tree.address_nodes.get_record(id=node.parent_id)
                 if parent.level < AddressLevel.OAZA:
-                    pos += 1
+                    node_id += 1
                 else:
-                    pos = parent.sibling_id
+                    node_id = parent.sibling_id
 
                 continue
 
@@ -609,15 +609,15 @@ class DataManager(object):
         # Build temporary lookup table
         logger.debug("Building temporary town and village table..")
         tmp_id_name_table = {}
-        pos = AddressNode.ROOT_NODE_ID + 1
-        while pos < tree.address_nodes.count_records():
-            node = tree.address_nodes.get_record(pos=pos)
+        node_id = AddressNode.ROOT_NODE_ID + 1
+        while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
+            node = tree.address_nodes.get_record(id=node_id)
             if node.level <= AddressLevel.CITY:
                 tmp_id_name_table[node.id] = node
-                pos += 1
+                node_id += 1
             else:
-                parent = tree.address_nodes.get_record(pos=node.parent_id)
-                pos = parent.sibling_id
+                parent = tree.address_nodes.get_record(id=node.parent_id)
+                node_id = parent.sibling_id
                 continue
 
         logger.debug("  {} records found.".format(

@@ -54,7 +54,8 @@ class PostCoder(BaseConverter):
         if do_download:
             self.download(
                 urls=[url],
-                dirname=self.input_dir
+                dirname=self.input_dir,
+                overwrite=True
             )
 
         with zipfile.ZipFile(zipfilepath) as z:

@@ -247,15 +247,17 @@ def filelist_html(base_db_dir: Path) -> str:
         '</tr>\n'
         '</thead><tbody>\n'
     )
-    for i, datafile in enumerate(sorted(glob.glob(str(base_db_dir / "*_v??.zip")))):
+    for i, datafile in enumerate(sorted(glob.glob(str(base_db_dir / "*.zip")))):
         datafile: Path = Path(datafile)
         filesize = datafile.stat().st_size
         filename = datafile.name
         with open(datafile, "rb") as f:
             sha1 = hashlib.sha1(f.read()).hexdigest()
 
-        args = re.match(r"([a-z]+)_(all|\d{2})_v(\d{2}).zip", filename)
+        args = re.match(
+            r"([a-z]+)_(all|\d{2})_v(\d{2}).(\d{4})(\d{2})(\d{2}).zip", filename)
         if args is None:
+            logger.info(f"Skip '{filename}'")
             continue
 
         level = "街区" if args.group(1) == "gaiku" else "住居表示・地番"
@@ -264,6 +266,8 @@ def filelist_html(base_db_dir: Path) -> str:
             vers = "1.3, 1.4"
         elif args.group(3) == "20":
             vers = "2.0, 2.1"
+        elif args.group(3) == "22":
+            vers = "2.2"
         else:
             vers = "2.1"
 
