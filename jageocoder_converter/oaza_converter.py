@@ -58,7 +58,7 @@ class OazaConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '17.0b'  # PY2023, 令和5年度
+        version = '18.0b'  # PY2024, 令和6年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -82,6 +82,11 @@ class OazaConverter(BaseConverter):
 
         note = None
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
+        if oaza == '':
+            # 38000-18.0b のバグ
+            logger.warning(f"大字名が空欄なのでスキップします。 ccode: {ccode}")
+            return
+
         ccode = ("00000" + ccode)[-5:]
         names = self.jiscodes[ccode]
         address = names + self.guessAza(oaza, ccode)

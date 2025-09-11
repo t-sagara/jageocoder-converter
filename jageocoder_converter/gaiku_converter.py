@@ -59,7 +59,7 @@ class GaikuConverter(BaseConverter):
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
         """
         urlbase = 'https://nlftp.mlit.go.jp/isj/dls/data'
-        version = '22.0a'  # PY2023, 令和5年度
+        version = '23.0a'  # PY2024, 令和6年度
         urls = []
         for pref_code in self.targets:
             url = "{0}/{1}/{2}000-{1}.zip".format(
@@ -74,6 +74,21 @@ class GaikuConverter(BaseConverter):
     def process_line(self, args, mode='latlon'):
         """
         Parse a line and add an address node.
+
+        0: "都道府県名"
+        1: "市区町村名"
+        2: "大字_丁目名"
+        3: "小字_通称名"
+        4: "街区符号_地番"
+        5: "座標系番号"
+        6: "Ｘ座標"
+        7: "Ｙ座標"
+        8: "緯度"
+        9: "経度"
+        10: "住居表示フラグ"
+        11: "代表フラグ"
+        12: "更新前履歴フラグ"
+        13: "更新後履歴フラグ"
         """
         if args[0] == '都道府県名' or args[2] == '' or args[11] == '0':
             # Skip line with blank Aza-names and non-representative points
@@ -84,6 +99,9 @@ class GaikuConverter(BaseConverter):
             return
         elif ',' in args[4]:
             # R5 版から "24,29" のように複数の地番を含むケースがあるので無視
+            return
+        elif args[4] in ("", "0"):
+            # R6 版の「岐阜市鷺山」に地番が空欄や "0" があるので無視
             return
 
         """
@@ -215,9 +233,9 @@ class GaikuConverter(BaseConverter):
                             args = [
                                 row['都道府県名'],
                                 row['市区町村名'],
-                                row['大字・丁目名'],
-                                row['小字・通称名'],
-                                row['街区符号・地番'],
+                                row.get('大字・丁目名', row.get('大字_丁目名')),
+                                row.get('小字・通称名', row.get('小字_通称名')),
+                                row.get('街区符号・地番', row.get('街区符号_地番')),
                                 row['座標系番号'],
                                 row['Ｘ座標'],
                                 row['Ｙ座標'],

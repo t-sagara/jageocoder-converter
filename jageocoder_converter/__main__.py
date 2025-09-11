@@ -1,6 +1,7 @@
 import jageocoder_converter
 import logging
 import os
+from pathlib import Path
 from docopt import docopt
 
 HELP = """
@@ -74,31 +75,25 @@ if __name__ == '__main__':
     }
 
     # Set paths
-    basedir = os.getcwd()
-    output_dir = args['--output-dir']
+    basedir = Path.cwd()
+    output_dir = Path(args['--output-dir'])
 
     if args['--db-dir'] is None:
         kwargs['db_dir'] = None
     elif os.path.isabs(args['--db-dir']):
-        kwargs['db_dir'] = args['--db-dir']
+        kwargs['db_dir'] = Path(args['--db-dir'])
     else:
-        kwargs['db_dir'] = os.path.join(
-            output_dir, args['--db-dir']
-        )
+        kwargs['db_dir'] = output_dir / args['--db-dir']
 
     if os.path.isabs(args['--download-dir']):
-        kwargs['download_dir'] = args['--download-dir']
+        kwargs['download_dir'] = Path(args['--download-dir'])
     else:
-        kwargs['download_dir'] = os.path.join(
-            output_dir, args['--download-dir']
-        )
+        kwargs['download_dir'] = output_dir / args['--download-dir']
 
     if os.path.isabs(args['--textdata-dir']):
-        kwargs['textdata_dir'] = args['--textdata-dir']
+        kwargs['textdata_dir'] = Path(args['--textdata-dir'])
     else:
-        kwargs['textdata_dir'] = os.path.join(
-            output_dir, args['--textdata-dir']
-        )
+        kwargs['textdata_dir'] = output_dir / args['--textdata-dir']
 
     # Set target prefectures
     if len(args['<prefcodes>']) == 0:

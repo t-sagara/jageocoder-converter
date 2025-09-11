@@ -7,6 +7,7 @@ import io
 import json
 from logging import getLogger
 import os
+from pathlib import Path
 import re
 import tempfile
 from typing import Union, Optional, List
@@ -39,14 +40,18 @@ class DataManager(object):
         List of prefecture codes (JISX0401) to be processed.
     """
 
+    PAGE_SIZE = 100000
+
     # Regular expression
     re_float = re.compile(r'^\-?\d+\.?\d*$')
     re_address = re.compile(r'^([^;]+);(\d+)$')
     re_name_level = re.compile(r'([^!]*?);(\d+),')
+    re_arabic_chome = re.compile(r'^([0-9０-９]+)(丁.*)$')
+    a2k_table = str.maketrans("０１２３４５６７８９", "〇一二三四五六七八九")
 
     def __init__(self,
-                 db_dir: Union[str, bytes, os.PathLike],
-                 text_dir: Union[str, bytes, os.PathLike],
+                 db_dir: Path,
+                 text_dir: Path,
                  targets: Optional[List[str]] = None) -> None:
         """
         Initialize the manager.
@@ -64,18 +69,24 @@ class DataManager(object):
 
         self.db_dir = db_dir
         self.text_dir = text_dir
-        self.targets = targets
-        self.targets = targets
-        if self.targets is None:
+        if targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
+        else:
+            self.targets = targets
 
-        os.makedirs(self.db_dir, mode=0o755, exist_ok=True)
+        self.db_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
         self.tmp_text = None
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
         self.aza_master = AzaMaster(db_dir=self.db_dir)
         # self.engine = self.tree.engine
         # self.session = self.tree.session
+
+    def _get_tmp_text(self):
+        if self.tmp_text is None:
+            raise RuntimeError("'tmp_text' is not initialized.")
+
+        return self.tmp_text
 
     def write_datasets(self, converters: list) -> None:
         """
@@ -112,6 +123,8 @@ class DataManager(object):
 
         # Initialize variables over prefectures
         self.root_node = AddressNode.root()
+        if self.root_node.id is None:
+            raise RuntimeError("Root node has null id.")
         self.cur_id = self.root_node.id
         self.node_array = [self.root_node.to_record()]
 
@@ -157,22 +170,22 @@ class DataManager(object):
             The target prefecture code (JISX0401).
         """
 
-        def sort_save_chunk(lines: List[str]) -> os.PathLike:
+        def sort_save_chunk(lines: List[str]) -> Path:
             lines.sort()
             tmpf = tempfile.NamedTemporaryFile(delete=False, mode='w')
             tmpf.writelines(lines)
             tmpf.close()
-            return tmpf.name
+            return Path(tmpf.name)
 
         logger.info('Sorting text data in {}'.format(
-            os.path.join(self.text_dir, prefcode + '_*.txt.bz2')))
+            str(self.text_dir / (prefcode + '_*.txt.bz2'))))
 
         # Write chunked data to tempfiles
         temp_files = []
         lines = []
         size = 0
         for filename in glob.glob(
-                os.path.join(self.text_dir, prefcode + '_*.txt.bz2')):
+                str(self.text_dir / (prefcode + '_*.txt.bz2'))):
             logger.info("   ... reading '{}'".format(
                 os.path.basename(filename)
             ))
@@ -200,7 +213,7 @@ class DataManager(object):
         # Merge sort
         logger.info("   ... merging {} chunks".format(len(temp_files)))
         fins = [open(fname, 'r') for fname in temp_files]
-        self.tmp_text.writelines(heapq.merge(*fins))
+        self._get_tmp_text().writelines(heapq.merge(*fins))
         for f in fins:
             f.close()
 
@@ -216,14 +229,14 @@ class DataManager(object):
         """
         logger.info('Building nodes tables.')
         # Initialize variables valid in a prefecture
-        self.tmp_text.seek(0)
+        self._get_tmp_text().seek(0)
         self.nodes = {}
         self.prev_key = ''
         # self.buffer = []
         self.update_array = {}
 
         # Read all texts for the prefecture
-        reader = csv.reader(self.tmp_text)
+        reader = csv.reader(self._get_tmp_text())
         for args in reader:
             if "\t" not in args[0]:
                 print(args)
@@ -365,6 +378,10 @@ class DataManager(object):
                 continue
 
             m = self.re_address.match(name)
+            if m is None:
+                raise RuntimeError(
+                    f"Name '{name}' does not match the pattern.")
+
             name = m.group(1)
             level = m.group(2)
             new_id = self.get_next_id()
@@ -377,17 +394,17 @@ class DataManager(object):
                 name_index=name_index,
                 x=x,
                 y=y,
-                level=level,
+                level=int(level),
                 priority=priority,
                 note=note if i == len(names) - 1 else "",
                 parent_id=parent_id
             )
             self.node_array.append(node.to_record())
 
-            while len(self.node_array) >= self.address_nodes.PAGE_SIZE:
+            while len(self.node_array) >= self.PAGE_SIZE:
                 self.address_nodes.append_records(self.node_array)
                 self.node_array = self.node_array[
-                    self.address_nodes.PAGE_SIZE:]
+                    self.PAGE_SIZE:]
 
             self.nodes[key] = new_id
             self.prev_key = key
@@ -421,12 +438,12 @@ class DataManager(object):
             self.node_array[pos]["siblingId"] = sibling_id
             return True
 
-    def prepare_aza_table(self, download_dir):
+    def prepare_aza_table(self, download_dir: Path):
         """
         Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
         """
         logger.debug("Creating aza_master table...")
-        zipfilepath = os.path.join(download_dir, 'mt_town_all.csv.zip')
+        zipfilepath = download_dir / 'mt_town_all.csv.zip'
         if not os.path.exists(zipfilepath):
             raise RuntimeError(f"Can't open {zipfilepath}.")
 
@@ -442,6 +459,31 @@ class DataManager(object):
             for row in reader:
                 if row["lg_code"][0:2] not in self.targets:
                     continue
+
+                if row["koaza_aka_code"] == "2":
+                    # 京都通り名は登録しない
+                    continue
+
+                m = self.re_arabic_chome.match(row["chome"])
+                if m:
+                    # 全角数字から始まる「１丁*」を漢数字「一丁*」に変換する
+                    numbers = m.group(1).translate(self.a2k_table)
+                    if len(numbers) == 1:
+                        # 1桁の場合
+                        row["chome"] = f"{numbers[0]}" + m.group(2)
+                    elif len(numbers) == 2:
+                        # 2桁の場合
+                        if numbers[1] == "〇":  # 漢数字のゼロ
+                            if numbers[0] == "一":
+                                row["chome"] = "十" + m.group(2)
+                            else:
+                                row["chome"] = f"{numbers[0]}十" + m.group(2)
+
+                        else:
+                            row["chome"] = f"{numbers[0]}十{numbers[1]}" + \
+                                m.group(2)
+                    else:
+                        raise RuntimeError(f"{row['chome']} is not expected.")
 
                 record = self.aza_master.from_csvrow(row)
                 if record["code"] not in aza_codes:
@@ -465,7 +507,7 @@ class DataManager(object):
         )
 
     @contextmanager
-    def open_csv_in_zipfile(self, zipfilepath: Union[str, os.PathLike]):
+    def open_csv_in_zipfile(self, zipfilepath: Path):
         """
         Get file pointer to the first csv file in the zipfile.
 
@@ -539,18 +581,31 @@ class DataManager(object):
         # Build temporary lookup table
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
-        node_id = AddressNode.ROOT_NODE_ID + 1
+        node_id: int = AddressNode.ROOT_NODE_ID + 1
         while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
-            node = tree.address_nodes.get_record(id=node_id)
+            node = tree.get_node_by_id(node_id)
+            if node.level is None:
+                raise RuntimeError(f"Node '{node.name}' has no level.")
+            elif node.parent_id is None:
+                raise RuntimeError(f"Node '{node.name}' has no parent_id.")
+            elif node.sibling_id is None:
+                raise RuntimeError(f"Node '{node.name}' has no siblings.")
+
             if node.level <= AddressLevel.OAZA:
                 tmp_id_name_table[node.id] = node
                 if node.level < AddressLevel.OAZA:
                     node_id += 1
                 else:
+
                     node_id = node.sibling_id
 
             else:
-                parent = tree.address_nodes.get_record(id=node.parent_id)
+                parent = tree.get_node_by_id(node.parent_id)
+                if parent.level is None:
+                    raise RuntimeError(f"Parent '{parent.name}' has no level.")
+                elif parent.sibling_id is None:
+                    raise RuntimeError(
+                        f"Parent '{parent.name}' has no siblings.")
                 if parent.level < AddressLevel.OAZA:
                     node_id += 1
                 else:
@@ -611,12 +666,12 @@ class DataManager(object):
         tmp_id_name_table = {}
         node_id = AddressNode.ROOT_NODE_ID + 1
         while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
-            node = tree.address_nodes.get_record(id=node_id)
+            node = tree.get_node_by_id(node_id)
             if node.level <= AddressLevel.CITY:
                 tmp_id_name_table[node.id] = node
                 node_id += 1
             else:
-                parent = tree.address_nodes.get_record(id=node.parent_id)
+                parent = tree.get_node_by_id(node.parent_id)
                 node_id = parent.sibling_id
                 continue
 

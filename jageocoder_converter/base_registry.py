@@ -13,6 +13,7 @@ import urllib
 import zipfile
 
 from jageocoder.address import AddressLevel
+from jageocoder.node import AddressNode
 from jageocoder_converter.base_converter import BaseConverter
 from jageocoder_converter.data_manager import DataManager
 from pyproj import Transformer
@@ -141,7 +142,8 @@ class BaseRegistryConverter(BaseConverter):
                 continue
 
             names = self.names_from_code(citycode + aza_id)
-            x, y = 999.9, 999.9
+            x = AddressNode.NO_COORDINATE_VALUE
+            y = AddressNode.NO_COORDINATE_VALUE
             note = 'aza_id:{}'.format(aza_id)
             self.print_line_with_postcode(names, x, y, note)
 
@@ -211,6 +213,40 @@ class BaseRegistryConverter(BaseConverter):
             aza_id = row["machiaza_id"]
             if aza_id in self._processed_azaid:
                 continue
+
+            if row["koaza_aka_code"] == "2":
+                # 京都通り名はリダイレクトに変換する
+                toorina = row["koaza"]
+                names = self.names_from_code(
+                    citycode + aza_id[0:4] + '000')  # 大字
+                if names is None:
+                    continue
+
+                oaza_element = names[-1]
+                if oaza_element[0] == 5:
+                    city_names = copy.copy(names[0:-1])
+                    oaza_path = "".join([x[1] for x in names])
+                    city_path = "".join([x[1] for x in city_names])
+
+                    # 京都市北区新町通鞍馬口上る上清蔵口町 -> 京都市北区上清蔵口町
+                    toorina_names = city_names + \
+                        [[5, toorina + oaza_element[1]]]
+                    self.print_line_with_postcode(
+                        names=toorina_names,
+                        x=AddressNode.NO_COORDINATE_VALUE,
+                        y=AddressNode.NO_COORDINATE_VALUE,
+                        note=f"ref:{oaza_path}"
+                    )
+
+                    # 京都市北区新町通鞍馬口上る -> 京都市北区
+                    toorina_names = city_names + [[5, toorina]]
+                    self.print_line_with_postcode(
+                        names=toorina_names,
+                        x=AddressNode.NO_COORDINATE_VALUE,
+                        y=AddressNode.NO_COORDINATE_VALUE,
+                        note=f"ref:{city_path}"
+                    )
+                    continue
 
             names = self.names_from_code(citycode + aza_id)
             x, y = 999.9, 999.9
@@ -793,26 +829,25 @@ class BaseRegistryConverter(BaseConverter):
         # 0000006: 町字マスター位置参照拡張
         # 0000007: 住居表示－街区マスター位置参照拡張
         # 0000008: 住居表示－住居マスター位置参照拡張
-        return
 
-        targets = (
-            'mt_city_all.csv.zip',
-            'mt_pref_all.csv.zip',
-            'mt_rsdtdsp_blk_all.csv.zip',
-            'mt_rsdtdsp_blk_pos_all.csv.zip',
-            'mt_rsdtdsp_rsdt_all.csv.zip',
-            'mt_rsdtdsp_rsdt_pos_all.csv.zip',
-            'mt_town_all.csv.zip',
-            'mt_town_pos_all.csv.zip',
-        )
-        not_found_files = []
-        for target in targets:
-            zipfilepath = os.path.join(self.input_dir, target)
-            if not os.path.exists(zipfilepath):
-                not_found_files.append(target)
+        # targets = (
+        #     'mt_city_all.csv.zip',
+        #     'mt_pref_all.csv.zip',
+        #     'mt_rsdtdsp_blk_all.csv.zip',
+        #     'mt_rsdtdsp_blk_pos_all.csv.zip',
+        #     'mt_rsdtdsp_rsdt_all.csv.zip',
+        #     'mt_rsdtdsp_rsdt_pos_all.csv.zip',
+        #     'mt_town_all.csv.zip',
+        #     'mt_town_pos_all.csv.zip',
+        # )
+        # not_found_files = []
+        # for target in targets:
+        #     zipfilepath = os.path.join(self.input_dir, target)
+        #     if not os.path.exists(zipfilepath):
+        #         not_found_files.append(target)
 
-        # Download data files if the targets are missed.
-        self.get_address_all(self.input_dir, force=len(not_found_files) > 0)
+        # # Download data files if the targets are missed.
+        # self.get_address_all(self.input_dir, force=len(not_found_files) > 0)
 
         # Check Base-Registry CKAN.
         # Download list of "地番マスター" first, then csv files later.
