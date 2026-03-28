@@ -39,9 +39,6 @@ class DataManager(object):
     targets: list[str]
         List of prefecture codes (JISX0401) to be processed.
     """
-
-    PAGE_SIZE = 100000
-
     # Regular expression
     re_float = re.compile(r'^\-?\d+\.?\d*$')
     re_address = re.compile(r'^([^;]+);(\d+)$')
@@ -401,10 +398,10 @@ class DataManager(object):
             )
             self.node_array.append(node.to_record())
 
-            while len(self.node_array) >= self.PAGE_SIZE:
+            while len(self.node_array) >= self.address_nodes.PAGE_SIZE:
                 self.address_nodes.append_records(self.node_array)
                 self.node_array = self.node_array[
-                    self.PAGE_SIZE:]
+                    self.address_nodes.PAGE_SIZE:]
 
             self.nodes[key] = new_id
             self.prev_key = key
