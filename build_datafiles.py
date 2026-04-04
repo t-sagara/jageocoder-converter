@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
 suffix = date.strftime(date.today(), '%Y%m%d')
+assert versions is not None
 ver = "v" + versions.group(1) + versions.group(2) + "." + suffix
 
 
@@ -127,7 +128,7 @@ def create_zipfiles(base_db_dir: Path):
             else:
                 logger.info(f"Archiving '{v1_dir}'")
                 shutil.make_archive(
-                    base_name=target,
+                    base_name=str(target),
                     format="zip",
                     root_dir=v1_dir,
                 )
@@ -136,9 +137,14 @@ def create_zipfiles(base_db_dir: Path):
         for fname in (
             "README.md",
             "address.trie",
-            "aza_master",
-            "dataset",
-            "trienode",
+            "address_node.sqlite",
+            "address_node_nameIndex.trie",
+            "address_node_note.trie",
+            "aza_master.sqlite",
+            "aza_master_code.trie",
+            "aza_master_names.trie",
+            "dataset.sqlite",
+            "trienode.sqlite",
         ):
             target = Path(v2_dir) / fname
             if not target.exists():
@@ -166,7 +172,7 @@ def create_zipfiles(base_db_dir: Path):
                     # Create zip archive
                     logger.info(f"Archiving '{v2_dir}'")
                     shutil.make_archive(
-                        base_name=target,
+                        base_name=str(target),
                         format="zip",
                         root_dir=v2_dir,
                     )
@@ -178,6 +184,7 @@ def create_zipfiles(base_db_dir: Path):
 
 def filelist_html(base_db_dir: Path) -> str:
     g = re.search(r"(\d{4}).*(\d{2}).*(\d{2})", base_db_dir.parent.name)
+    assert g is not None
     published = (g.group(1), g.group(2), g.group(3))
     prefs = {
         "01": "北海道", "02": "青森県", "03": "岩手県", "04": "宮城県",
@@ -247,15 +254,20 @@ def filelist_html(base_db_dir: Path) -> str:
         '</tr>\n'
         '</thead><tbody>\n'
     )
-    for i, datafile in enumerate(sorted(glob.glob(str(base_db_dir / "*.zip")))):
+    for i, datafile in enumerate(
+            sorted(base_db_dir.glob("*.zip"))):
         datafile: Path = Path(datafile)
         filesize = datafile.stat().st_size
         filename = datafile.name
+        h = hashlib.sha1()
         with open(datafile, "rb") as f:
-            sha1 = hashlib.sha1(f.read()).hexdigest()
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
 
+        sha1 = h.hexdigest()
         args = re.match(
-            r"([a-z]+)_(all|\d{2})_v(\d{2}).(\d{4})(\d{2})(\d{2}).zip", filename)
+            r"([a-z]+)_(all|\d{2})_v(\d{2}).(\d{4})(\d{2})(\d{2}).zip",
+            filename)
         if args is None:
             logger.info(f"Skip '{filename}'")
             continue
@@ -290,7 +302,6 @@ def filelist_html(base_db_dir: Path) -> str:
 
 
 if __name__ == "__main__":
-    import sys
     do_build_gaiku = '--gaiku' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_build_jukyo = '--jukyo' in sys.argv[1:] or '--all' in sys.argv[1:]
     do_create_zip = '--zip' in sys.argv[1:] or '--all' in sys.argv[1:]
@@ -312,9 +323,9 @@ if __name__ == "__main__":
         logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
     )
     for target in ('jageocoder', 'jageocoder_converter',):
-        logger = logging.getLogger(target)
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(console_handler)
+        _logger = logging.getLogger(target)
+        _logger.setLevel(logging.DEBUG)
+        _logger.addHandler(console_handler)
 
     for argv in sys.argv[1:]:
         if argv.startswith('--db-dir='):

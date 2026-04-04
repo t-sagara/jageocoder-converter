@@ -1,5 +1,4 @@
 import csv
-import datetime
 from functools import lru_cache
 import glob
 import json
@@ -10,13 +9,14 @@ import re
 import sys
 import time
 from typing import TextIO, Union, Optional, List, Tuple
-import zipfile
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.node import AddressNode
-import urllib.request
 
 from jageocoder_converter.data_manager import DataManager
 import jageocoder_converter.config
@@ -66,9 +66,10 @@ class BaseConverter(object):
     dataset_url = ""
 
     def __init__(
-            self, fp: Optional[TextIO] = None,
-            manager: Optional[DataManager] = None,
-            priority: Optional[int] = None,
+            self,
+            manager: DataManager,
+            priority: int,
+            fp: Optional[TextIO] = None,
             targets: Optional[List[str]] = None,
             quiet: Optional[bool] = False,
             disable_postcoder: Optional[bool] = False):
@@ -89,9 +90,10 @@ class BaseConverter(object):
         self.manager = manager
         self.priority = priority
         self.quiet_flag = quiet
-        self.targets = targets
-        if self.targets is None:
+        if targets is None:
             self.targets = ['{:02d}'.format(x) for x in range(1, 48)]
+        else:
+            self.targets = targets
 
         self.postcoder = None
         self.disable_postcoder = disable_postcoder
@@ -100,13 +102,10 @@ class BaseConverter(object):
         """
         Return the file path to the 'jiscode.jsonl'
         """
-        data_dir = os.path.abspath(
-            os.path.join(
-                jageocoder_converter.config.base_download_dir,
-                'data'))
-        os.makedirs(data_dir, 0o755, exist_ok=True)
-
-        return os.path.join(data_dir, 'jiscode.jsonl')
+        data_dir = (
+            jageocoder_converter.config.base_download_dir / "data").absolute()
+        data_dir.mkdir(mode=0o755, parents=True, exist_ok=True, )
+        return data_dir / 'jiscode.jsonl'
 
     def prepare_jiscode_table(self):
         """
@@ -117,7 +116,7 @@ class BaseConverter(object):
 
         jiscode_json_path = self.get_jiscode_json_path()
 
-        if not os.path.exists(jiscode_json_path):
+        if not jiscode_json_path.exists():
             self.create_jiscodes_from_city_file()
 
         with open(jiscode_json_path,
@@ -139,10 +138,9 @@ class BaseConverter(object):
         """
         Read 'geoshape-city.csv' and write 'jiscode.jsonl'
         """
-        input_filepath = os.path.join(
-            jageocoder_converter.config.base_download_dir,
-            'geoshape-city.csv')
-        if not os.path.exists(input_filepath):
+        input_filepath = jageocoder_converter.config.base_download_dir \
+            / 'geoshape-city.csv'
+        if not input_filepath.exists():
             self.download(
                 urls=[
                     'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
@@ -206,95 +204,24 @@ class BaseConverter(object):
 
     def get_address_all(
             self,
-            download_dir,
+            download_dir: Path,
             force: bool = False) -> None:
         """
-        Download "address_all.csv.zip" and extract
-        to the specified directory.
+        Download "mt_town_fullset_all.csv.zip" to the specified directory.
         """
-        target = os.path.join(download_dir, "address_all.csv.zip")
-        if os.path.exists(target) and force:
-            os.unlink(target)
-
-        api_url = (
-            'https://catalog.registries.digital.go.jp/rc/'
-            'api/3/action/')
-        dataset_id = 'ba000001'
-        url = api_url + 'package_show?id={}'.format(dataset_id)
-        logger.debug("Getting metadata of package '{}'".format(dataset_id))
-        download_url = None
-        with urllib.request.urlopen(url) as response:
-            result = json.loads(response.read())
-            metadata = result['result']
-            download_url = self.dataurl_from_metadata(
-                metadata, download_dir)
-
-        if download_url:
+        target = download_dir / "mt_town_fullset_all.csv.zip"
+        if not target.exists() or force:
             self.download(
-                urls=[download_url],
+                urls=[
+                    "https://data.address-br.digital.go.jp/mt_town_fullset/mt_town_fullset_all.csv.zip"],  # noqa: E501
                 dirname=download_dir,
-                overwrite=True
+                overwrite=force,
             )
 
-        # Extract all "*.zip" files
-        with zipfile.ZipFile(target) as z:
-            for filename in z.namelist():
-                if not filename.lower().endswith('.zip'):
-                    continue
-
-                target = os.path.join(
-                    download_dir,
-                    os.path.basename(filename))
-                with open(target, mode="w+b") as fout:
-                    with z.open(filename, mode='r') as fin:
-                        fout.write(fin.read())
-
-                    logger.debug("Extracted {}.".format(target))
-
-    def dataurl_from_metadata(
-            self,
-            metadata: dict,
-            data_dir: Optional[os.PathLike] = None) -> Union[str, None]:
-        """
-        Check CKAN metadata from address-base-registry,
-        extract download file url from the metadata.
-
-        Parameters
-        ----------
-        metadata: dict
-            JSON decoded CKAN metadata.
-        data_dir: PathLike, optional
-            The directory where the datafile will be placed.
-
-        Return
-        ------
-        str:
-            The url where the data can be downloaded.
-            If the file already exists and updated,
-            return None.
-        """
-        download_url = None
-        data_dir = data_dir or self.input_dir
-        default_dt = '2000-01-01T00:00'
-        for resource in metadata['resources']:
-            issued_at = datetime.datetime.fromisoformat(
-                resource.get("created", default_dt))
-            modified_at = datetime.datetime.fromisoformat(
-                resource.get("metadata_modified", default_dt))
-            url = resource["url"]
-            if resource["format"].lower().startswith("csv"):
-                basename = os.path.basename(url)
-                filepath = os.path.join(data_dir, basename)
-                if not os.path.exists(filepath) or \
-                        os.path.getmtime(filepath) < max(
-                            issued_at.timestamp(),
-                            modified_at.timestamp()):
-                    download_url = url
-                    break
-
-        return download_url
-
-    def confirm(self, terms_of_use: Optional[str] = None) -> bool:
+    def confirm(
+        self,
+        terms_of_use: str = ""
+    ) -> bool:
         """
         Show the terms of the license agreement and confirm acceptance.
 
@@ -309,7 +236,7 @@ class BaseConverter(object):
         bool
             Return True if accept.
         """
-        while terms_of_use is not None and not self.quiet_flag:
+        while terms_of_use and not self.quiet_flag:
             enter = input("\n" + terms_of_use +
                           " (了承する場合は Y, 中止する場合は N を入力)")
             if enter in ('Y', 'y'):
@@ -321,10 +248,11 @@ class BaseConverter(object):
         return True
 
     def download(
-        self, urls: List[str],
-        dirname: Union[str, bytes, os.PathLike],
+        self,
+        urls: List[str],
+        dirname: Path,
         overwrite: bool = False,
-    ) -> None:
+    ) -> List[Tuple[int, str, str]]:
         """
         Download files from web specified by urls and save them under dirname.
 
@@ -335,23 +263,49 @@ class BaseConverter(object):
         dirname: PathLike
             The directory where the downloaded files will be stored.
         """
-        if not os.path.exists(dirname):
-            os.makedirs(dirname, mode=0o755)
-
+        dirname.mkdir(mode=0o755, parents=True, exist_ok=True)
+        error_urls = []
         for url in urls:
-            basename = os.path.basename(url)
-            filename = os.path.join(dirname, basename)
+            u = urllib.parse.urlsplit(url)
+            urlpath = Path(u.path)
+            basename = urlpath.name
+            filename = dirname / basename
+            errfile = dirname / (basename + ".err")
 
-            if os.path.exists(filename) and overwrite is False:
+            if filename.exists() and overwrite is False:
                 logger.info(
                     "File '{}' exists. (skip downloading)".format(filename))
+                continue
+            elif errfile.exists() and overwrite is False:
+                logger.info(
+                    f"Errfile '{errfile}' exists. (skip downloading)"
+                )
                 continue
 
             logger.debug(
                 "Downloading '{}'->'{}'".format(url, filename))
 
-            local_filename, headers = urllib.request.urlretrieve(url, filename)
-            time.sleep(5)
+            try:
+                local_filename, headers = urllib.request.urlretrieve(
+                    url, filename)
+            except urllib.error.HTTPError as e:
+                if 400 <= e.code < 500:
+                    logger.error(
+                        "HTTP {} error downloading '{}': {}".format(
+                            e.code, url, e.reason))
+                    error_urls.append((e.code, url, e.reason))
+                    with open(errfile, "w") as fout:
+                        fout.write(json.dumps({
+                            "code": e.code,
+                            "url": url,
+                            "reason": e.reason,
+                        }, ensure_ascii=False))
+                    time.sleep(1)
+                    continue
+                raise
+            time.sleep(1)
+
+        return error_urls
 
     def set_fp(self, fp: Union[TextIO, None]) -> None:
         """
@@ -389,7 +343,7 @@ class BaseConverter(object):
 
     def aza_from_names(
             self,
-            elements: list) -> Union[object, None]:
+            elements: list) -> Union[dict, None]:
         """
         Retrieve AzaMaster record from a list of address elements.
 
@@ -431,11 +385,11 @@ class BaseConverter(object):
         if aza is None:
             return None
 
-        return aza.code
+        return aza["code"] if aza else None
 
     def names_from_code(
             self,
-            code: str) -> Union[List[str], None]:
+            code: str) -> Union[List[Address], None]:
         """
         Get a list of address elements from an azacode.
 
@@ -454,7 +408,7 @@ class BaseConverter(object):
         if len(cands) == 0:
             return None
 
-        return json.loads(cands[0].names)
+        return json.loads(cands[0]["names"])
 
     def print_line(self, names: List[Address], x: float, y: float,
                    note: Optional[str] = None) -> None:
@@ -474,17 +428,7 @@ class BaseConverter(object):
         note: str, optional
             Notes (used to add codes, identifiers, etc.)
         """
-        # keys = []
-        # for name in names:
-        #     if name[1] == '':
-        #         continue
-
-        #     keys.append(
-        #         itaiji_converter.standardize(name[1]) + ";{}".format(name[0]))
-
-        # line = " ".join(keys) + "\t"
         line = ""
-
         prev_level = 0
         for name in names:
             if name[1] == '':
@@ -592,7 +536,7 @@ class BaseConverter(object):
         """
         kanji = ''
         if num >= 1000:
-            i = num / 1000
+            i = int(num / 1000)
             if i > 1:
                 kanji += self.kansuji[i]
 
@@ -600,7 +544,7 @@ class BaseConverter(object):
             num = num % 1000
 
         if num >= 100:
-            i = num / 100
+            i = int(num / 100)
             if i > 1:
                 kanji += self.kansuji[i]
 
@@ -608,7 +552,7 @@ class BaseConverter(object):
             num = num % 100
 
         if num >= 10:
-            i = num / 10
+            i = int(num / 10)
             if i > 1:
                 kanji += self.kansuji[i]
 
@@ -641,8 +585,9 @@ class BaseConverter(object):
             m = re.match(r'^(.+?[^文大])((字|小字).*)$', name)
             if m:
                 return [
-                    [AddressLevel.OAZA, m.group(1)],
-                    [AddressLevel.AZA, m.group(2)]]
+                    (AddressLevel.OAZA, str(m.group(1))),
+                    (AddressLevel.AZA, m.group(2)),
+                ]
 
         m = re.match(
             r'^(.*?[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西|南|北)?)$', name)
@@ -696,7 +641,7 @@ class BaseConverter(object):
                 [AddressLevel.BLOCK, m.group(2)]])
 
         # If it can' t be split, returned as is
-        return [[AddressLevel.OAZA, name]]
+        return [(AddressLevel.OAZA, name),]
 
     def _resplit_doubled_kansuji(self, values: list) -> list:
         """
@@ -716,7 +661,7 @@ class BaseConverter(object):
         return values
 
     @lru_cache
-    def guessAza(self, name: str, jcode: str = '') -> str:
+    def guessAza(self, name: str, jcode: str = '') -> List[Address]:
         """
         Analyze the Aza-name and return the split-formatted one.
 
@@ -753,7 +698,7 @@ class BaseConverter(object):
             name = name[1:]
 
             result = self._guessAza_sub(name, ignore_aza=True)
-            result[0][1] = '字' + result[0][1]
+            result[0] = (result[0][0], '字' + result[0][1])
             return result
 
         pos = name.find('大字')
@@ -764,19 +709,21 @@ class BaseConverter(object):
             if jcode == '06201' and sub_name.startswith('十文字'):
                 # Exception: 山形県/山形市/大字十文字/大原 is not
                 # converted to 大字十文/字大原
-                result = [[AddressLevel.OAZA, '大字十文字'],
-                          [AddressLevel.AZA, sub_name[3:]]]
+                result = [
+                    (AddressLevel.OAZA, '大字十文字'),
+                    (AddressLevel.AZA, sub_name[3:])]
             else:
                 m = re.match(r'^([^字]+?[^文])(字.+)', sub_name)
                 if m:
-                    result = [[AddressLevel.OAZA, '大字' + m.group(1)],
-                              [AddressLevel.AZA, m.group(2)]]
+                    result = [
+                        (AddressLevel.OAZA, '大字' + str(m.group(1))),
+                        (AddressLevel.AZA, m.group(2))]
                 else:
                     result = self._guessAza_sub(sub_name)
-                    result[0][1] = '大字' + result[0][1]
+                    result[0] = (result[0][0], '大字' + result[0][1])
 
             if area_name != '':
-                result.insert(0, [AddressLevel.OAZA, area_name])
+                result.insert(0, (AddressLevel.OAZA, area_name))
 
             return result
 
@@ -802,8 +749,8 @@ class BaseConverter(object):
         elif jcode == '21201':
             m = re.match(r'^(西野町)([６７六七]丁目.*)$', name)
             if m:
-                result = [[AddressLevel.OAZA, m.group(1)],
-                          [AddressLevel.AZA, m.group(2)]]
+                result = [(AddressLevel.OAZA, m.group(1)),
+                          (AddressLevel.AZA, m.group(2))]
                 return result
 
         # The following address is a maintenance error and should be corrected
@@ -811,18 +758,18 @@ class BaseConverter(object):
         #   長野県/長野市/若里7丁目 -> 長野県/長野市/若里７丁目
         #   広島県/福山市/駅家町大字弥生ケ -> 広島県/福山市/駅家町大字弥生ヶ丘
         if jcode == '20201' and name == '若里6丁目':
-            result = [[AddressLevel.OAZA, '若里'],
-                      [AddressLevel.AZA, '６丁目']]
+            result = [(AddressLevel.OAZA, '若里'),
+                      (AddressLevel.AZA, '６丁目')]
             return result
 
         if jcode == '20201' and name == '若里7丁目':
-            result = [[AddressLevel.OAZA, '若里'],
-                      [AddressLevel.AZA, '７丁目']]
+            result = [(AddressLevel.OAZA, '若里'),
+                      (AddressLevel.AZA, '７丁目')]
             return result
 
         if jcode == '34207' and name == '駅家町大字弥生ケ':
-            result = [[AddressLevel.OAZA, '駅家町'],
-                      [AddressLevel.OAZA, '大字弥生ヶ丘']]
+            result = [(AddressLevel.OAZA, '駅家町'),
+                      (AddressLevel.OAZA, '大字弥生ヶ丘')]
             return result
 
         result = self._guessAza_sub(name)
@@ -857,3 +804,24 @@ class BaseConverter(object):
                 str(output_dir / f"*_{pattern}.txt.bz2.bak")):
             if os.path.exists(filepath):
                 os.rename(filepath, filepath[0:-4])
+
+    @classmethod
+    def get_citycode_list(cls):
+        """
+        Get list of citycode.
+
+        総務省から取得した全国地方公共団体コードのリストを利用して総当たりする
+        https://www.soumu.go.jp/denshijiti/code.html
+        リストはクリーニングして data/citycodes-20240101.csv に保存しておく
+        """
+        citycode_list_path = Path(__file__).parent / \
+            "data/citycodes-20240101.csv"
+        citycodes = []
+        with open(citycode_list_path, "rt", newline="") as fin:
+            reader = csv.reader(fin)
+            reader.__next__()  # ヘッダをスキップ
+            for row in reader:
+                code = row[0]
+                citycodes.append(code)
+
+        return citycodes

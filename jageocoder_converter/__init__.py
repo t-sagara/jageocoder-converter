@@ -1,7 +1,7 @@
 from importlib.metadata import version
 from logging import getLogger
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import Optional, List
 
 __version__ = '2.1.3'
 
@@ -49,7 +49,7 @@ def __prepare_postcoder(directory: Path):
 def convert(
     prefs: Optional[List[str]] = None,
     use_postcode: bool = True,
-    use_geolod: bool = True,
+    # use_geolod: bool = True,
     use_oaza: bool = True,
     use_gaiku: bool = True,
     use_geolonia: bool = True,

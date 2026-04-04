@@ -3,7 +3,8 @@ import csv
 import io
 from logging import getLogger
 import os
-from typing import Union, Optional, List
+from pathlib import Path
+from typing import Optional, List
 import zipfile
 
 from jageocoder.address import AddressLevel
@@ -25,10 +26,10 @@ class ChibanConverter(BaseConverter):
     dataset_url = "https://front.geospatial.jp/moj-chizu-xml-readme/"
 
     def __init__(self,
-                 output_dir: Union[str, bytes, os.PathLike],
-                 input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional[DataManager] = None,
-                 priority: Optional[int] = None,
+                 output_dir: Path,
+                 input_dir: Path,
+                 manager: DataManager,
+                 priority: int,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> None:
         super().__init__(
@@ -44,7 +45,7 @@ class ChibanConverter(BaseConverter):
         terms = (
             "「法務省登記所備付地図代表点データ」をダウンロードします。\n"
             "利用条件等は {url} を確認してください。\n"
-        ).format(url='https://www.geospatial.jp/ckan/dataset/houmusyouchizu-2022-1-1/resource/737ca982-2217-4721-8be4-eb5bf9cb1899')  # noqa: E501
+        ).format(url='https://www.geospatial.jp/ckan/dataset/houmusyouchizu-2025-1-42/resource/498e70b7-c031-4977-9641-eca3d15b0819')  # noqa: E501
         return super().confirm(terms)
 
     def download_files(self) -> None:
@@ -78,7 +79,6 @@ class ChibanConverter(BaseConverter):
                         f, encoding='UTF-8', newline='',
                         errors='backslashreplace')
                     reader = csv.reader(ft)
-                    pre_args = None
                     logger.debug('Processing {} in {}...'.format(
                         filename, zipfilepath))
                     for row in reader:
@@ -107,7 +107,11 @@ class ChibanConverter(BaseConverter):
                             for ban in ban_list[1:]:
                                 names.append([AddressLevel.BLD, ban])
 
-                        self.print_line(names, row[6], row[7])
+                        self.print_line(
+                            names,
+                            float(row[6]),
+                            float(row[7]),
+                        )
 
     def convert(self):
         """

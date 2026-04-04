@@ -92,9 +92,9 @@ class OazaConverter(BaseConverter):
         address = names + self.guessAza(oaza, ccode)
         aza = self.aza_from_names(address)
         if aza:
-            note = 'aza_id:{}'.format(aza.code[5:])
+            note = 'aza_id:{}'.format(aza["code"][5:])
 
-        if aza is None or aza.startCountType != 1:
+        if aza is None or aza["startCountType"] != 1:
             if ccode not in self.nonames:
                 self.nonames[ccode] = {
                     "address": names

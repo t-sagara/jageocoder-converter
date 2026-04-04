@@ -2,7 +2,8 @@ import bz2
 import csv
 from logging import getLogger
 import os
-from typing import Union, Optional, List
+from pathlib import Path
+from typing import Optional, List
 
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
@@ -24,10 +25,10 @@ class GeoloniaConverter(BaseConverter):
     dataset_url = "https://geolonia.github.io/japanese-addresses/"
 
     def __init__(self,
-                 output_dir: Union[str, bytes, os.PathLike],
-                 input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional[DataManager] = None,
-                 priority: Optional[int] = None,
+                 output_dir: Path,
+                 input_dir: Path,
+                 manager: DataManager,
+                 priority: int,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> None:
         super().__init__(

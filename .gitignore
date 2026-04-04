@@ -137,5 +137,8 @@ dmypy.json
 /download/
 /text/
 
+# Temporary backup
+/*.zip
+
 # Other files
 /jageocoder_converter/data/jiscode.jsonl

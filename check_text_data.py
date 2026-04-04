@@ -14,8 +14,10 @@ def check_bz2(target: Path):
         for i, row in enumerate(reader):
             nfields = len(row)
             if nfields > 20:
-                print(
-                    f"File '{basename}', line {i}, too many fields ({nfields}).")
+                print((
+                    f"File '{basename}', line {i}, "
+                    f"too many fields ({nfields})."
+                ))
 
 
 def main():

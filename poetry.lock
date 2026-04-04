@@ -483,7 +483,7 @@ files = [
 
 [[package]]
 name = "jageocoder"
-version = "2.2.1.dev1"
+version = "2.2.1.1"
 description = "A Japanese-address geocoder for Python."
 optional = false
 python-versions = ">3.9.1"
@@ -502,7 +502,7 @@ rtree = ">=1.0.0"
 tqdm = ">=4.0.0"
 
 [package.extras]
-dev = ["twine (>=5.1.1)"]
+dev = ["flake8", "tox (>=4.0.0)", "tox-uv", "twine (>=5.1.1)"]
 doc = ["sphinx-rtd-theme (>=1.2.0)"]
 test = ["pytest (>=8.4.1)"]
 

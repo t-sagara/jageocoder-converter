@@ -11,8 +11,6 @@ from pathlib import Path
 import re
 import zipfile
 
-from jageocoder.address import AddressLevel
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 

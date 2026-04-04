@@ -4,8 +4,9 @@ import glob
 import io
 from logging import getLogger
 import os
+from pathlib import Path
 import re
-from typing import Union, Optional, List
+from typing import Optional, List
 import urllib.request
 import zipfile
 
@@ -29,10 +30,10 @@ class JushoConverter(BaseConverter):
     dataset_url = "https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html"
 
     def __init__(self,
-                 output_dir: Union[str, bytes, os.PathLike],
-                 input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional[DataManager] = None,
-                 priority: Optional[int] = None,
+                 output_dir: Path,
+                 input_dir: Path,
+                 manager: DataManager,
+                 priority: int,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> None:
         super().__init__(
@@ -160,8 +161,6 @@ class JushoConverter(BaseConverter):
         '電子国土基本図（地名情報）「住居表示住所」の閲覧・ダウンロード'
         https://saigai.gsi.go.jp/jusho/download/
         """
-        return
-
         urlbase = 'https://saigai.gsi.go.jp/jusho/download/pref/'
         urls = []
         for pref_code in self.targets:

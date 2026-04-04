@@ -4,13 +4,14 @@ import glob
 import io
 from logging import getLogger
 import os
+from pathlib import Path
 import re
-from typing import Union, Optional, List
+from typing import Optional, List
 import zipfile
 
 import jaconv
 from jageocoder.address import AddressLevel
-from jageocoder_converter.base_converter import BaseConverter
+from jageocoder_converter.base_converter import Address, BaseConverter
 from jageocoder_converter.data_manager import DataManager
 from jageocoder.node import AddressNode
 
@@ -29,10 +30,10 @@ class GaikuConverter(BaseConverter):
     re_hugou = re.compile(r'^([^\d]*)(\d*[A-Z]?号?)([^\d]*)')
 
     def __init__(self,
-                 output_dir: Union[str, bytes, os.PathLike],
-                 input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional[DataManager] = None,
-                 priority: Optional[int] = None,
+                 output_dir: Path,
+                 input_dir: Path,
+                 manager: DataManager,
+                 priority: int,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> None:
         super().__init__(
@@ -138,19 +139,19 @@ class GaikuConverter(BaseConverter):
             y = args[7]
 
         uppers = self.jiscodes[jcode]
-        names = []
+        names: List[Address] = []
 
         # The following addresses may be a branch numbers
         # 17206 石川県/加賀市/永井町五十六/12 => 石川県/加賀市/永井町/56番地/12
         if jcode == '17206':
             m = re.match(r'^永井町([一二三四五六七八九十１２３４５６７８９].*)$', args[2])
             if m:
-                names.append([AddressLevel.OAZA, '永井町'])
-                chiban = m.group(1).translate(self.trans_kansuji_zerabic)
+                names.append((AddressLevel.OAZA, '永井町'))
+                chiban = m.group(1).translate(self.trans_kansuji_zarabic)
                 chiban = chiban.replace('十', '')
-                names.append([AddressLevel.BLOCK, chiban + '番地'])
+                names.append((AddressLevel.BLOCK, chiban + '番地'))
                 hugou = jaconv.h2z(args[3], ascii=False, digit=False)
-                names.append([AddressLevel.BLC, hugou])
+                names.append((AddressLevel.BLOCK, hugou))
                 self.print_line(uppers + names, x, y)
                 return
 
@@ -166,48 +167,49 @@ class GaikuConverter(BaseConverter):
                 args[2] = '（大字なし）'
 
         if args[2] in ('', '（大字なし）'):
-            names.append([AddressLevel.OAZA, AddressNode.NONAME])
+            names.append((AddressLevel.OAZA, AddressNode.NONAME))
         else:
             names += self.guessAza(args[2], jcode)
 
         if args[3] != '' and args[3] != ' ':
-            names.append([AddressLevel.AZA, args[3]])
+            names.append((AddressLevel.AZA, args[3]))
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
         if args[10] == '1':
             # 住居表示地域
             if hugou[-1] in '0123456789ABCabc':
                 # 大阪市中央区上町の A番-C番 対応
-                names.append([AddressLevel.BLOCK, hugou + '番'])
+                names.append((AddressLevel.BLOCK, hugou + '番'))
             else:
                 # 「渡辺」対応
                 logger.debug("Non-numeric hugou '{}' in {}".format(
                     hugou, ','.join(args)))
-                names.append([AddressLevel.BLOCK, hugou])
+                names.append((AddressLevel.BLOCK, hugou))
         else:
             # 住居表示未実施地域
             m = self.re_hugou.match(hugou)
+            assert m is not None
             aza, chiban, dropped = m.groups()
             if aza != '':
                 if len(names) > 0 and names[-1][1] == aza:
                     # Error handling of data with duplicate Aza and Chiban
                     names = names[:-1]
 
-                names.append([AddressLevel.AZA, aza])
+                names.append((AddressLevel.AZA, aza))
 
             if chiban:
                 if dropped == '':
-                    names.append([AddressLevel.BLOCK, chiban + '番地'])
+                    names.append((AddressLevel.BLOCK, chiban + '番地'))
                 else:
                     # 脱落地
                     # logger.debug("Datsurakuchi '{}' in {}".format(
                     #     hugou, ','.join(args)))
                     if chiban[-1] == '号':
-                        names.append([AddressLevel.BLOCK, chiban])
+                        names.append((AddressLevel.BLOCK, chiban))
                     else:
-                        names.append([AddressLevel.BLOCK, chiban + '番'])
+                        names.append((AddressLevel.BLOCK, chiban + '番'))
 
-                    names.append([AddressLevel.BLOCK, dropped + '地'])
+                    names.append((AddressLevel.BLOCK, dropped + '地'))
 
         self.print_line(uppers + names, x, y)
 
@@ -288,30 +290,3 @@ class GaikuConverter(BaseConverter):
                 self.set_fp(fout)
                 logger.debug("Reading from {}".format(input_filepath))
                 self.add_from_zipfile(input_filepath)
-
-    def update_oaza_index(self):
-        """
-        Create Oaza index from 'gaiku/xx000.zip' files.
-        The index will be output to 'data/oazalist.txt'.
-        """
-        oaza_list = []
-        for pref_code in range(1, 48):
-            input_filepath = None
-            while input_filepath is None:
-                zipfiles = glob.glob(
-                    os.path.join(self.input_dir,
-                                 '{:02d}000*.zip'.format(pref_code)))
-                if len(zipfiles) == 0:
-                    self.download_files()
-                else:
-                    input_filepath = zipfiles[0]
-
-            logger.debug("Extracting Oaza from {}".format(
-                input_filepath))
-            oaza_list += self.create_oaza_list(input_filepath)
-
-        oaza_list = list(set(oaza_list))
-        oaza_list.sort()
-        with open(self.get_oaza_list_path(), 'w', encoding='utf-8') as f:
-            for oaza in oaza_list:
-                print(oaza, file=f)

@@ -3,7 +3,8 @@ import csv
 import json
 from logging import getLogger
 import os
-from typing import Union, Optional, List
+from pathlib import Path
+from typing import Optional, List
 
 from jageocoder.address import AddressLevel
 
@@ -24,10 +25,10 @@ class CityConverter(BaseConverter):
     dataset_url = "https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/"
 
     def __init__(self,
-                 output_dir: Union[str, bytes, os.PathLike],
-                 input_dir: Union[str, bytes, os.PathLike],
-                 manager: Optional[DataManager] = None,
-                 priority: Optional[int] = None,
+                 output_dir: Path,
+                 input_dir: Path,
+                 manager: DataManager,
+                 priority: int,
                  targets: Optional[List[str]] = None,
                  quiet: Optional[bool] = False) -> None:
         super().__init__(
@@ -74,7 +75,7 @@ class CityConverter(BaseConverter):
         if not os.path.exists(input_filepath):
             self.download(
                 urls=[
-                    'https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/geoshape-city-geolod.csv',
+                    'https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/geoshape-city-geolod.csv',  # noqa: E501
                     # 'http://agora.ex.nii.ac.jp/GeoNLP/dict/geoshape-city.csv'
                 ],
                 dirname=self.input_dir
@@ -161,8 +162,10 @@ class CityConverter(BaseConverter):
                             if prefcode not in city_records:
                                 city_records[prefcode] = []
 
-                            city_records[prefcode].append(
-                                [names, lon, lat, 'geoshape_city_id:' + city_id])
+                            city_records[prefcode].append([
+                                names, lon, lat,
+                                'geoshape_city_id:' + city_id
+                            ])
 
                         if city_id[5] == 'A':
                             key = ''.join([x[1] for x in names])
@@ -182,7 +185,8 @@ class CityConverter(BaseConverter):
                             if jiscodes[jiscode][1] == '':
                                 continue
 
-                            if valid_to == '' or valid_to > jiscodes[jiscode][1]:
+                            if valid_to == '' or \
+                                    valid_to > jiscodes[jiscode][1]:
                                 jiscodes[jiscode] = [names, valid_to]
 
         # 自治体名から対応するコードのリストを取得し、

@@ -1,1 +1,2 @@
-base_download_dir = None
+from pathlib import Path
+base_download_dir = Path.cwd()

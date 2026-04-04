@@ -59,10 +59,12 @@ def validate_line(fname: str, lineno: int, row: dict):
 
 
 def process_files():
-    zipfiles = glob.glob(Path(__file__).parent.parent /
-                         'download/oaza/*.0b.zip')
+    pattern = Path(__file__).absolute().parent.parent / \
+        'download/oaza/*.0b.zip'
+    zipfiles = glob.glob(str(pattern))
     zipfiles.sort()
-    for zipfilepath in zipfiles:
+    for zipname in zipfiles:
+        zipfilepath = Path(zipname)
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
                 if not filename.lower().endswith('.csv'):

@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
-from typing import Union, Optional, List
+from typing import Optional, List, Iterator
 import zipfile
 
 
@@ -18,6 +18,7 @@ from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.local import LocalTree
 from jageocoder.tree import AddressTree
 from jageocoder.trie import AddressTrie, TrieNode
 from jageocoder.node import AddressNode, AddressNodeTable
@@ -287,7 +288,7 @@ class DataManager(object):
                 names = args[0:-2]
                 x = float(args[-2])
                 y = float(args[-1])
-                note = None
+                note = ""
             else:
                 names = args[0:-3]
                 x = float(args[-3])
@@ -300,6 +301,9 @@ class DataManager(object):
         if names[-1][0] == '!':
             priority = int(names[-1][1:])
             names = names[0:-1]
+
+        if x < 100.0 or (100.0 < y and y < 200.0):  # 経度緯度の異常値チェック
+            raise ValueError(args)
 
         self.add_elements(
             keys=keys,
@@ -314,8 +318,8 @@ class DataManager(object):
             names: List[str],
             x: float,
             y: float,
-            note: Optional[str],
-            priority: Optional[int]) -> None:
+            note: str = "",
+            priority: int = 99) -> None:
         """
         Format the address elements into a form that can be registered
         in the database. The parent_id is also calculated and assigned.
@@ -440,7 +444,7 @@ class DataManager(object):
         Read 'mt_town_all.csv.zip' and register to 'aza_master' table.
         """
         logger.debug("Creating aza_master table...")
-        zipfilepath = download_dir / 'mt_town_all.csv.zip'
+        zipfilepath = download_dir / 'mt_town_fullset_all.csv.zip'
         if not os.path.exists(zipfilepath):
             raise RuntimeError(f"Can't open {zipfilepath}.")
 
@@ -450,7 +454,7 @@ class DataManager(object):
 
         records = {}
         with self.open_csv_in_zipfile(zipfilepath) as ft:
-            reader = csv.DictReader(ft)
+            reader = csv.DictReader(ft)  # type: ignore
             n = 0
             aza_codes = {}
             for row in reader:
@@ -504,7 +508,10 @@ class DataManager(object):
         )
 
     @contextmanager
-    def open_csv_in_zipfile(self, zipfilepath: Path):
+    def open_csv_in_zipfile(
+        self,
+        zipfilepath: Path
+    ) -> Iterator[io.TextIOWrapper]:
         """
         Get file pointer to the first csv file in the zipfile.
 
@@ -513,9 +520,8 @@ class DataManager(object):
         zipfilepath: PathLike
             Path to the target zipfile.
         """
-        if not os.path.exists(zipfilepath):
-            yield None
-            return
+        if not zipfilepath.exists():
+            raise FileNotFoundError(zipfilepath)
 
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
@@ -538,7 +544,7 @@ class DataManager(object):
                             "Copied zipfile {} to tmpfile {}.".format(
                                 filename, nt.name))
 
-                        with self.open_csv_in_zipfile(nt.name) as ft:
+                        with self.open_csv_in_zipfile(Path(nt.name)) as ft:
                             yield ft
 
     def create_trie_index(self) -> None:
@@ -551,9 +557,11 @@ class DataManager(object):
         self._extend_index_table()
 
         logger.debug("Building Trie...")
+        if not isinstance(self.tree, LocalTree):
+            raise RuntimeError("'self.tree' is not an instance of LocalTree.")
+
         self.tree.trie = AddressTrie(self.tree.trie_path, self.index_table)
         self.tree.trie.save()
-
         records = self._set_index_table()
         self.index_table.clear()
 
@@ -574,12 +582,14 @@ class DataManager(object):
         that omit the name of the prefecture and the city.
         """
         tree = self.tree
+        assert isinstance(tree, LocalTree)
 
         # Build temporary lookup table
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         node_id: int = AddressNode.ROOT_NODE_ID + 1
-        while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
+        while node_id < AddressNode.ROOT_NODE_ID + \
+                tree.address_nodes.count_records():
             node = tree.get_node_by_id(node_id)
             if node.level is None:
                 raise RuntimeError(f"Node '{node.name}' has no level.")
@@ -657,12 +667,14 @@ class DataManager(object):
         Expand the index, including support for omission of county names.
         """
         tree = self.tree
+        assert isinstance(tree, LocalTree)
 
         # Build temporary lookup table
         logger.debug("Building temporary town and village table..")
         tmp_id_name_table = {}
         node_id = AddressNode.ROOT_NODE_ID + 1
-        while node_id < AddressNode.ROOT_NODE_ID + tree.address_nodes.count_records():
+        while node_id < AddressNode.ROOT_NODE_ID + \
+                tree.address_nodes.count_records():
             node = tree.get_node_by_id(node_id)
             if node.level <= AddressLevel.CITY:
                 tmp_id_name_table[node.id] = node
@@ -726,6 +738,7 @@ class DataManager(object):
         the TRIE id to the node id.
         """
         tree = self.tree
+        assert isinstance(tree, LocalTree)
 
         logger.debug("Creating mapping table from trie_id:node_id")
         trie_nodes = []

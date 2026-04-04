@@ -4,8 +4,9 @@ from functools import lru_cache
 import io
 from logging import getLogger
 import os
+from pathlib import Path
 import re
-from typing import Union
+from typing import Iterator, Union
 import zipfile
 
 import marisa_trie
@@ -25,8 +26,10 @@ class PostCoder(BaseConverter):
 
     postcoder = None
 
-    def __init__(self,
-                 input_dir: Union[str, bytes, os.PathLike]):
+    def __init__(
+        self,
+        input_dir: Path
+    ):
         self.input_dir = input_dir
 
         self.addresses = set()
@@ -127,7 +130,7 @@ class PostCoder(BaseConverter):
 
         self.trie = marisa_trie.Trie(self.addresses)
 
-    def _parse_koaza(self, surface: str) -> list:
+    def _parse_koaza(self, surface: str) -> Iterator[str]:
         """
         Split koaza representations by '、'.
         Ex. '３５～３８、４１、４２' -> ['３５～３８', '４１', '４２']
@@ -152,7 +155,7 @@ class PostCoder(BaseConverter):
                 continue
 
             span = m.group(0)
-            args = m.groups()
+            args = list(m.groups())
             logger.debug('args:{}'.format(m.groups()))
             if args[1] is None and args[4] is None:
                 continue
@@ -210,6 +213,7 @@ class PostCoder(BaseConverter):
     @lru_cache
     def search(self, address: str) -> Union[str, None]:
         standardized = converter.standardize(address)
+        assert self.trie is not None
 
         while True:
             prefixes = self.trie.prefixes(standardized)
