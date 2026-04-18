@@ -14,18 +14,13 @@ import jageocoder_converter
 
 logger = logging.getLogger(__name__)
 
-versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
-suffix = date.strftime(date.today(), '%Y%m%d')
-assert versions is not None
-ver = "v" + versions.group(1) + versions.group(2) + "." + suffix
-
 
 def build_gaiku(
     base_db_dir: Path,
     targets: List[Union[str, None]],
+    ver: str,
     create_rtree: Optional[bool] = False
 ) -> None:
-    global ver
 
     for pref in targets:
         if pref is not None:
@@ -60,17 +55,17 @@ def build_gaiku(
                 open(readme, "w") as fout:
             fout.write(fin.read())
 
-        if create_rtree:
-            jageocoder.init(db_dir=db_dir)
-            jageocoder.reverse(139.6917, 35.6896)
+    if create_rtree:
+        jageocoder.init(db_dir=db_dir)
+        jageocoder.reverse(139.6917, 35.6896)
 
 
 def build_jukyo(
     base_db_dir: Path,
     targets: List[Union[str, None]],
+    ver: str,
     create_rtree: Optional[bool] = False
 ) -> None:
-    global ver
 
     for pref in targets:
         if pref is not None:
@@ -301,19 +296,42 @@ def filelist_html(base_db_dir: Path) -> str:
     return html
 
 
+def get_jageocoder_version() -> str:
+    """
+    Return jageocoder's major and minor version.
+    e.g. 2.2.1.1 -> "22"
+    """
+    versions = re.search(r"(\d+)\.(\d+)\.(.+)", jageocoder.__version__)
+    assert versions is not None
+    return versions.group(1) + versions.group(2)
+
+
 if __name__ == "__main__":
-    do_build_gaiku = '--gaiku' in sys.argv[1:] or '--all' in sys.argv[1:]
-    do_build_jukyo = '--jukyo' in sys.argv[1:] or '--all' in sys.argv[1:]
-    do_create_zip = '--zip' in sys.argv[1:] or '--all' in sys.argv[1:]
-    do_create_index = '--index' in sys.argv[1:] or '--all' in sys.argv[1:]
-    do_create_rtree = '--rtree' in sys.argv[1:]  # or '--all' in sys.argv[1:]
-    if do_build_gaiku | do_build_jukyo | do_create_zip | do_create_index:
-        pass
-    else:
-        print((
-            f"Usage: python {sys.argv[0]} [--db-dir=<dbdir>] "
-            "[--gaiku] [--jukyo] [--zip] [--index] [--rtree] [--all]"
-        ))
+    import argparse
+
+    compat_version = get_jageocoder_version()
+
+    parser = argparse.ArgumentParser(
+        description="Build jageocoder address database files."
+    )
+    parser.add_argument("--suffix", type=str, default=date.strftime(date.today(), '%Y%m%d'), help="DB suffix")
+    parser.add_argument("--gaiku", action="store_true", help="Build gaiku database")
+    parser.add_argument("--jukyo", action="store_true", help="Build jukyo database")
+    parser.add_argument("--zip", action="store_true", dest="create_zip", help="Create zip archives")
+    parser.add_argument("--index", action="store_true", dest="create_index", help="Create index.html")
+    parser.add_argument("--rtree", action="store_true", dest="create_rtree", help="Build R-tree index")
+    parser.add_argument("--all", action="store_true", help="Run gaiku, jukyo, zip, and index steps")
+    args = parser.parse_args()
+
+    db_ver = f"v{compat_version}.{args.suffix}"
+    do_build_gaiku = args.gaiku or args.all
+    do_build_jukyo = args.jukyo or args.all
+    do_create_zip = args.create_zip or args.all
+    do_create_index = args.create_index or args.all
+    do_create_rtree = args.create_rtree
+
+    if not (do_build_gaiku or do_build_jukyo or do_create_zip or do_create_index):
+        parser.print_help()
         exit(1)
 
     # Set logger
@@ -327,23 +345,23 @@ if __name__ == "__main__":
         _logger.setLevel(logging.DEBUG)
         _logger.addHandler(console_handler)
 
-    for argv in sys.argv[1:]:
-        if argv.startswith('--db-dir='):
-            base_db_dir = Path(argv[9:])
-            break
-
-    else:
-        base_db_dir = Path("./") / "db_{}".format(
-            date.today().strftime("%Y%m%d")
-        )
+    base_db_dir = Path("__file__").parent / f"db_{db_ver}"
 
     all_prefs = ["{:02d}".format(x) for x in range(1, 48)] + [None]
     if do_build_gaiku:
-        build_gaiku(base_db_dir, targets=[None], create_rtree=do_create_rtree)
+        build_gaiku(
+            base_db_dir,
+            targets=[None],
+            ver=db_ver,
+            create_rtree=do_create_rtree)
 
     if do_build_jukyo:
         # build_jukyo(base_db_dir, targets=all_prefs)
-        build_jukyo(base_db_dir, targets=[None], create_rtree=do_create_rtree)
+        build_jukyo(
+            base_db_dir,
+            targets=[None],
+            ver=db_ver,
+            create_rtree=do_create_rtree)
 
     if do_create_zip:
         create_zipfiles(base_db_dir)

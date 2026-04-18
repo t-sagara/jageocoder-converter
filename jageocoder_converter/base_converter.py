@@ -410,8 +410,13 @@ class BaseConverter(object):
 
         return json.loads(cands[0]["names"])
 
-    def print_line(self, names: List[Address], x: float, y: float,
-                   note: Optional[str] = None) -> None:
+    def print_line(
+            self,
+            names: List[Address],
+            x: float,
+            y: float,
+            note: Optional[str] = None
+        ) -> None:
         """
         Outputs a single line of information.
         If the instance variable priority is set,

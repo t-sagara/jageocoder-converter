@@ -41,10 +41,10 @@ class DataManager(object):
         List of prefecture codes (JISX0401) to be processed.
     """
     # Regular expression
-    re_float = re.compile(r'^\-?\d+\.?\d*$')
+    re_float = re.compile(r'^\-?\d+\.?\d*\s*$')
     re_address = re.compile(r'^([^;]+);(\d+)$')
     re_name_level = re.compile(r'([^!]*?);(\d+),')
-    re_arabic_chome = re.compile(r'^([0-9０-９]+)(丁.*)$')
+    re_arabic_chome = re.compile(r'^([0-9０-９]+)(丁\S*)\s*$')
     a2k_table = str.maketrans("０１２３４５６７８９", "〇一二三四五六七八九")
 
     def __init__(self,

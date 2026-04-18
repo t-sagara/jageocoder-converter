@@ -1,15 +1,12 @@
 jageocoder 用住所データベース利用規約（住居表示レベル）
-2025年4月23日 株式会社情報試作室
+2026年4月17日 株式会社情報試作室
 
 1. データ形式について
 
     このデータは jageocoder 用の住所データベースファイルです。
 
-    ファイル名末尾が "_v1*.zip" (* は数字) のものは v1 系のフォーマットで、
-    展開すると "address.db" という名前の SQLite3 ファイルが含まれています。
-
-    ファイル名末尾が "_v2*.zip" (* は数字) のものは v2 系のフォーマットで、
-    PortableTab フォーマットのバイナリファイルが含まれています。
+    ファイル名末尾が "_v20.zip" のものは v2.0.x、"_v21.zip" のものは v2.1.x、
+    "_v22.zip" のものは v2.2.x でのみ動作します。
 
 2. データの出典について
 
@@ -33,8 +30,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 位置参照情報ダウンロードサイト
         https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi
-        - 大字町丁目レベル位置参照情報（令和5年） 17.0b （2024-06-13 ダウンロード）
-        - 街区レベル位置参照情報（令和5年） 22.0a （2024-06-13 ダウンロード）
+        - 大字町丁目レベル位置参照情報（令和6年） 18.0b （2026-04-01 ダウンロード）
+        - 街区レベル位置参照情報（令和6年） 23.0a （2024-04-01 ダウンロード）
         - 利用規約 https://nlftp.mlit.go.jp/ksj/other/agreement.html#agree-03
         - ライセンス 政府標準利用規約（第2.0版）
 
@@ -46,7 +43,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 Geolonia 住所データ
         https://geolonia.github.io/japanese-addresses/
-        - v0.6.6 （2024-06-13 ダウンロード）
+        - v0.6.6 （2026-04-01 ダウンロード）
         - ライセンス CC-BY 4.0
         
     (4) 電子国土基本図（地名情報）「住居表示住所」
@@ -57,8 +54,8 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 電子国土基本図（地名情報）「住居表示住所」
         https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html
-        - 2025-03-26 更新版 （2025-04-03 ダウンロード）
-        - ライセンス 「測量法に基づく国土地理院長承認（使用）R 7JHs 54」による
+        - 2026-03-26 更新版 （2026-04-17 ダウンロード）
+        - ライセンス 「測量法に基づく国土地理院長承認（使用）R 8JHs 42」による
         - 利用規約 https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html
 
     (5) 日本郵便郵便番号データ
@@ -68,13 +65,13 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
         出典 郵便番号データ
         https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
-        - 2025-03-31 更新版 （2025-04-03 ダウンロード）
+        - 2026-03-31 更新版 （2026-04-01 ダウンロード）
         - 郵便番号データは「自由に配布」が許可されています。
             https://www.post.japanpost.jp/zipcode/dl/readme.html
 
     (6) アドレス・ベース・レジストリ
 
-        デジタル庁が公開している「日本 町字マスター データセット」より、
+        デジタル庁が公開している「全国 町字マスター (フルセット)」より、
         字レベルの住所要素に対応する字ID（7桁コード）とを取得し、
         大字町丁目レベル位置参照情報および Geolonia 住所データの
         対応する要素に付与しました。
@@ -87,19 +84,19 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         取得し、位置参照情報として利用しました。
 
         出典 アドレス・ベース・レジストリより
-        - 「日本 町字マスター データセット」(2025-03-31更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-000000_g2-000003
-        - 「全国　町字マスター位置参照拡張　データセット」(2025-04-01更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba000004
-        - 「全国　住居表示-街区マスター　データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba000002
-        - 「全国　住居表示-街区マスター位置参照拡張　データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba000005
-        - 「全国 住居表示-住所マスター データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rsc/address/mt_rsdtdsp_rsdt_all.csv.zip
-        - 「全国　住居表示-住居マスター位置参照拡張 データセット」(2024-03-15更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba000006
-        - 2025-04-03 ダウンロード
+        - 「全国 町字マスター (フルセット)」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_town_fullset/mt_town_fullset_all.csv.zip
+        - 「(都道府県別) 町字マスター位置参照拡張」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_town_pos/pref/mt_town_pos_prefXX.csv.zip (XXは都道府県コード)
+        - 「(都道府県別) 住居表示-街区マスター」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_rsdtdsp_blk/pref/mt_rsdtdsp_blk_prefXX.csv.zip (XXは都道府県コード)
+        - 「(都道府県別) 住居表示-街区マスター位置参照拡張」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_rsdtdsp_blk_pos/pref/mt_rsdtdsp_blk_pos_prefXX.csv.zip (XXは都道府県コード)
+        - 「(都道府県別) 住居表示-住所マスター」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_rsdtdsp_rsdt/pref/mt_rsdtdsp_rsdt_prefXX.csv.zip (XXは都道府県コード)
+        - 「(都道府県別) 住居表示―住居マスター位置参照拡張」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_rsdtdsp_rsdt_pos/pref/mt_rsdtdsp_rsdt_pos_prefXX.csv.zip (XXは都道府県コード)
+        - 2026-04-01 ダウンロード
         - ライセンス 政府標準利用規約（第2.0版）
         - 利用規約 https://www.digital.go.jp/policies/base_registry_address_tos/
 
@@ -110,13 +107,11 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
         「地番マスター位置参照拡張」を取得し、位置参照情報として利用しました。
 
         出典 登記所備付地図データ（法務省）
-        - 「（市区町村別）地番マスター データセット」(2024-05-09更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-xxxxxx_g2-000010
-            ただし xxxxxx は地方公共団体コード
-        - 「（市区町村別）地番マスター位置参照拡張 データセット」(2024-05-09更新)
-            https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-xxxxxx_g2-000011
-            ただし xxxxxx は地方公共団体コード
-        - 2025-04-03 ダウンロード
+        - 「（市区町村別）地番マスター」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_parcel/city/mt_parcel_city312011.csv.zip (xxxxxx は地方公共団体コード)
+        - 「（市区町村別）地番マスター位置参照拡張」(2025-08-09更新)
+            https://data.address-br.digital.go.jp/mt_parcel_pos/city/mt_parcel_pos_city312011.csv.zip (xxxxxx は地方公共団体コード)
+        - 2026-04-01 ダウンロード
         - ライセンス 政府標準利用規約（第2.0版）
         - 利用規約 https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku
 
@@ -124,7 +119,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
 
 (1) 本データは、弊社が国土地理院より下記の承認を受けて作成し
     提供するものです。
-   「測量法に基づく国土地理院長承認（使用）R 7JHs 54」
+   「測量法に基づく国土地理院長承認（使用）R 8JHs 42」
 
 (2) 本データは、商用・非商用を問わず利用することができます。
     ただし利用しているデータの禁止事項に該当する、以下の場合を除きます。
@@ -141,7 +136,7 @@ jageocoder 用住所データベース利用規約（住居表示レベル）
     公開する場合、利用者から見えるところ（ヘルプページ等）に
     以下の文言を記載してください。
 
-    「位置参照情報（大字町丁目・街区レベル）令和5年」（国土交通省）、
+    「位置参照情報（大字町丁目・街区レベル）令和6年」（国土交通省）、
     「電子国土基本図（地名情報）住居表示住所」（国土地理院）、
     「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/、
     「アドレス・ベース・レジストリ」（デジタル庁）

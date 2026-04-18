@@ -45,7 +45,7 @@ class ChibanConverter(BaseConverter):
         terms = (
             "「法務省登記所備付地図代表点データ」をダウンロードします。\n"
             "利用条件等は {url} を確認してください。\n"
-        ).format(url='https://www.geospatial.jp/ckan/dataset/houmusyouchizu-2025-1-42/resource/498e70b7-c031-4977-9641-eca3d15b0819')  # noqa: E501
+        ).format(url='https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku')  # noqa: E501
         return super().confirm(terms)
 
     def download_files(self) -> None:
